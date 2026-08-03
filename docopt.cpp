@@ -936,7 +936,7 @@ public:
         if (error_type_ == ERROR_LANGUAGE) {
             throw DocoptLanguageError(msg);
         } else {
-            throw DocoptExit(1, msg);
+            throw DocoptArgumentError(msg);
         }
     }
 
@@ -1355,7 +1355,7 @@ static void extras(bool help, const std::string& version, const std::vector<Patt
             std::string n = argv_options[i]->name();
             if ((n == "-h" || n == "--help") && argv_options[i]->get_value().is_bool() && argv_options[i]->get_value().as_bool()) {
                 std::string help_doc = trim(doc, "\n");
-                throw DocoptExit(0, help_doc, help_doc);
+                throw DocoptExitHelp(help_doc);
             }
         }
     }
@@ -1363,7 +1363,7 @@ static void extras(bool help, const std::string& version, const std::vector<Patt
         for (size_t i = 0; i < argv_options.size(); ++i) {
             std::string n = argv_options[i]->name();
             if (n == "--version" && argv_options[i]->get_value().is_bool() && argv_options[i]->get_value().as_bool()) {
-                throw DocoptExit(0, version, version);
+                throw DocoptExitVersion(version);
             }
         }
     }
@@ -1448,7 +1448,7 @@ Options Docopt(
         return result;
     }
 
-    throw DocoptExit(1, "", usage_str);
+    throw DocoptArgumentError("", usage_str);
 }
 
 Options Docopt(

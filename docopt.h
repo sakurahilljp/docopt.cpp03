@@ -39,6 +39,24 @@ public:
     ~DocoptExit() throw();
 };
 
+class DocoptExitHelp : public DocoptExit {
+public:
+    explicit DocoptExitHelp(const std::string& usage_str);
+    ~DocoptExitHelp() throw();
+};
+
+class DocoptExitVersion : public DocoptExit {
+public:
+    explicit DocoptExitVersion(const std::string& version_str);
+    ~DocoptExitVersion() throw();
+};
+
+class DocoptArgumentError : public DocoptExit {
+public:
+    explicit DocoptArgumentError(const std::string& message = "", const std::string& usage_str = "");
+    ~DocoptArgumentError() throw();
+};
+
 //------------------------------------------------------------------------------
 // Value Class (Dynamic variant type holding bool, long, string, list, or empty)
 //------------------------------------------------------------------------------
@@ -258,6 +276,21 @@ inline DocoptExit::DocoptExit(const std::string& message, const std::string& usa
       status(1) {}
 
 inline DocoptExit::~DocoptExit() throw() {}
+
+inline DocoptExitHelp::DocoptExitHelp(const std::string& usage_str)
+    : DocoptExit(0, "Help requested", usage_str) {}
+
+inline DocoptExitHelp::~DocoptExitHelp() throw() {}
+
+inline DocoptExitVersion::DocoptExitVersion(const std::string& version_str)
+    : DocoptExit(0, version_str, version_str) {}
+
+inline DocoptExitVersion::~DocoptExitVersion() throw() {}
+
+inline DocoptArgumentError::DocoptArgumentError(const std::string& message, const std::string& usage_str)
+    : DocoptExit(1, message, usage_str) {}
+
+inline DocoptArgumentError::~DocoptArgumentError() throw() {}
 
 //------------------------------------------------------------------------------
 // Value Class Implementation
