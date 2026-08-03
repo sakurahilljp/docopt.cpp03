@@ -95,6 +95,18 @@ public:
     const std::string& as_string() const;
     const std::vector<std::string>& as_string_list() const;
 
+    // docopt for C++11 value compatibility methods (CamelCase)
+    bool isBool() const { return is_bool(); }
+    bool isLong() const { return is_long(); }
+    bool isString() const { return is_string(); }
+    bool isStringList() const { return is_string_list(); }
+
+    bool asBool() const { return as_bool(); }
+    long asLong() const { return as_long(); }
+    double asDouble() const { return as_double(); }
+    const std::string& asString() const { return as_string(); }
+    const std::vector<std::string>& asStringList() const { return as_string_list(); }
+
     bool as_bool_or(bool default_val) const;
     long as_long_or(long default_val) const;
     double as_double_or(double default_val) const;

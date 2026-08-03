@@ -176,6 +176,22 @@ The result of `docoptcpp03::Docopt` is `docoptcpp03::Options`. `docoptcpp03::Val
 | `if (val)` / Safe Bool Cast | `bool` | Contextual Safe Bool conversion to test if value is set / truthy | `if (opts["--verbose"])` |
 | `if (!val)` / Logical NOT | `bool` | Logical negation operator to test if value is empty / falsy | `if (!opts["--output"])` |
 
+### `docopt for C++11` `value` Compatibility Methods (CamelCase)
+
+To make migration from the `docopt for C++11` library seamless, `docoptcpp03::Value` provides CamelCase compatibility wrappers matching [`docopt_value.h`](https://github.com/docopt/docopt.cpp/blob/master/docopt_value.h):
+
+| CamelCase Method | Equivalent `snake_case` Method | Description |
+| :--- | :--- | :--- |
+| `val.isBool()` | `val.is_bool()` | Check if value is boolean |
+| `val.isLong()` | `val.is_long()` | Check if value is long integer |
+| `val.isString()` | `val.is_string()` | Check if value is string |
+| `val.isStringList()` | `val.is_string_list()` | Check if value is string list |
+| `val.asBool()` | `val.as_bool()` | Get boolean value |
+| `val.asLong()` | `val.as_long()` | Get long integer value |
+| `val.asDouble()` | `val.as_double()` | Get double floating-point value |
+| `val.asString()` | `val.as_string()` | Get string reference |
+| `val.asStringList()` | `val.as_string_list()` | Get vector of strings reference |
+
 ### Options Helper Methods
 
 `docoptcpp03::Options` provides convenient query, getter, and developer debug dumping methods:
