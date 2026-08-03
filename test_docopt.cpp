@@ -265,7 +265,7 @@ int main(int argc, char* argv[]) {
         bool test_ok = false;
 
         try {
-            docoptcpp03::Options result = docoptcpp03::Docopt(tc.doc, args);
+            docoptcpp03::Options result = docoptcpp03::docopt_parse(tc.doc, args);
 
             if (is_user_error) {
                 std::cout << "[FAIL] Case " << (i + 1) << ": Expected user-error, but docopt succeeded." << std::endl;

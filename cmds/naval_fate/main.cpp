@@ -23,7 +23,7 @@ static const char USAGE[] =
 
 int main(int argc, char* argv[]) {
     try {
-        const docoptcpp03::Options opts = docoptcpp03::Docopt(USAGE, argc - 1, argv + 1, true, "Naval Fate 2.0");
+        const docoptcpp03::Options opts = docoptcpp03::docopt_parse(USAGE, argc - 1, argv + 1, true, "Naval Fate 2.0");
 
         std::cout << "--- Parsed Command Line Options ---" << std::endl;
         for (docoptcpp03::Options::const_iterator it = opts.begin(); it != opts.end(); ++it) {
