@@ -190,7 +190,7 @@ TEST(BasicUsageTest, PositionalArgument) {
     char const* argv_raw[] = { "John" };
     std::vector<std::string> argv = make_args(argv_raw, 1);
 
-    Options result = docoptcpp03::Docopt(doc, argv);
+    Options result = docoptcpp03::docopt_parse(doc, argv);
     EXPECT_TRUE(result["<name>"].is_string());
     EXPECT_EQ("John", result["<name>"].as_string());
 }
@@ -200,7 +200,7 @@ TEST(BasicUsageTest, MultiplePositionalArguments) {
     char const* argv_raw[] = { "/path/src", "/path/dst" };
     std::vector<std::string> argv = make_args(argv_raw, 2);
 
-    Options result = docoptcpp03::Docopt(doc, argv);
+    Options result = docoptcpp03::docopt_parse(doc, argv);
     EXPECT_EQ("/path/src", result["<src>"].as_string());
     EXPECT_EQ("/path/dst", result["<dst>"].as_string());
 }
@@ -212,7 +212,7 @@ TEST(BasicUsageTest, ArgcArgvOverload) {
     char* argv[] = { arg0, arg1 };
     int argc = 2;
 
-    Options result = docoptcpp03::Docopt(doc, argc, argv);
+    Options result = docoptcpp03::docopt_parse(doc, argc, argv);
     EXPECT_EQ("Alice", result["<name>"].as_string());
     EXPECT_TRUE(result["--verbose"].as_bool());
 }
@@ -227,11 +227,11 @@ TEST(OptionParsingTest, ShortOptionFlag) {
         "Options: -a  All flag.";
     
     char const* argv_with_a[] = { "-a" };
-    Options res1 = docoptcpp03::Docopt(doc, make_args(argv_with_a, 1));
+    Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_with_a, 1));
     EXPECT_TRUE(res1["-a"].as_bool());
 
     char const* argv_empty[] = {};
-    Options res2 = docoptcpp03::Docopt(doc, make_args(argv_empty, 0));
+    Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_empty, 0));
     EXPECT_FALSE(res2["-a"].as_bool());
 }
 
@@ -241,7 +241,7 @@ TEST(OptionParsingTest, LongOptionWithEquals) {
         "Options: --output=<file>  Output file.";
 
     char const* argv[] = { "--output=out.txt" };
-    Options res = docoptcpp03::Docopt(doc, make_args(argv, 1));
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
     EXPECT_EQ("out.txt", res["--output"].as_string());
 }
 
@@ -254,7 +254,7 @@ TEST(OptionParsingTest, ShortOptionStacking) {
         "  -c  Option C";
 
     char const* argv[] = { "-ac" };
-    Options res = docoptcpp03::Docopt(doc, make_args(argv, 1));
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
     EXPECT_TRUE(res["-a"].as_bool());
     EXPECT_FALSE(res["-b"].as_bool());
     EXPECT_TRUE(res["-c"].as_bool());
@@ -268,11 +268,11 @@ TEST(FlagCountingTest, RepeatableFlags) {
     const std::string doc = "Usage: prog [-v...]";
 
     char const* argv_v1[] = { "-v" };
-    Options res1 = docoptcpp03::Docopt(doc, make_args(argv_v1, 1));
+    Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_v1, 1));
     EXPECT_EQ(1L, res1["-v"].as_long());
 
     char const* argv_v3[] = { "-vvv" };
-    Options res3 = docoptcpp03::Docopt(doc, make_args(argv_v3, 1));
+    Options res3 = docoptcpp03::docopt_parse(doc, make_args(argv_v3, 1));
     EXPECT_EQ(3L, res3["-v"].as_long());
 }
 
@@ -287,13 +287,13 @@ TEST(CommandTest, Subcommands) {
         "  prog ship move <x> <y>\n";
 
     char const* argv_new[] = { "ship", "new", "Enterprise" };
-    Options res1 = docoptcpp03::Docopt(doc, make_args(argv_new, 3));
+    Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_new, 3));
     EXPECT_TRUE(res1["ship"].as_bool());
     EXPECT_TRUE(res1["new"].as_bool());
     EXPECT_EQ("Enterprise", res1["<name>"].as_string());
 
     char const* argv_move[] = { "ship", "move", "100", "200" };
-    Options res2 = docoptcpp03::Docopt(doc, make_args(argv_move, 4));
+    Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_move, 4));
     EXPECT_TRUE(res2["ship"].as_bool());
     EXPECT_TRUE(res2["move"].as_bool());
     EXPECT_FALSE(res2["new"].as_bool());
@@ -312,11 +312,11 @@ TEST(DefaultsTest, DefaultOptionValues) {
         "  --speed=<kn>  Speed in knots [default: 10].";
 
     char const* argv_default[] = {};
-    Options res1 = docoptcpp03::Docopt(doc, make_args(argv_default, 0));
+    Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_default, 0));
     EXPECT_EQ("10", res1["--speed"].as_string());
 
     char const* argv_custom[] = { "--speed=25" };
-    Options res2 = docoptcpp03::Docopt(doc, make_args(argv_custom, 1));
+    Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_custom, 1));
     EXPECT_EQ("25", res2["--speed"].as_string());
 }
 
@@ -332,7 +332,7 @@ TEST(OptionsShortcutTest, AutomaticDocOptions) {
         "  -o, --output=<out>  Output file [default: stdout].";
 
     char const* argv[] = { "-v", "input.txt" };
-    Options res = docoptcpp03::Docopt(doc, make_args(argv, 2));
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
     EXPECT_TRUE(res["--verbose"].as_bool());
     EXPECT_EQ("stdout", res["--output"].as_string());
     EXPECT_EQ("input.txt", res["<file>"].as_string());
@@ -342,7 +342,7 @@ TEST(OptionsTest, ConstOptionsAccess) {
     const std::string doc = "Usage: prog [--foo=<bar>]";
     char const* argv[] = { "--foo=baz" };
 
-    const Options opts = docoptcpp03::Docopt(doc, make_args(argv, 1));
+    const Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
 
     // const Options operator[] access
     EXPECT_EQ("baz", opts["--foo"].as_string());
@@ -385,7 +385,7 @@ TEST(OptionsTest, OptionsHelperMethods) {
     const std::string doc = "Usage: prog [--speed=<kn>] [--verbose]";
     char const* argv[] = { "--speed=25" };
 
-    const Options opts = docoptcpp03::Docopt(doc, make_args(argv, 1));
+    const Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
 
     EXPECT_TRUE(opts.has_key("--speed"));
     EXPECT_TRUE(opts.contains("--speed"));
@@ -402,7 +402,7 @@ TEST(OptionsTest, OptionsDump) {
     const std::string doc = "Usage: prog [--speed=<kn>] <name>";
     char const* argv[] = { "--speed=20", "John" };
 
-    const Options opts = docoptcpp03::Docopt(doc, make_args(argv, 2));
+    const Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
 
     std::string dumped = opts.dump_string();
     EXPECT_TRUE(dumped.find("Options (2 items):") != std::string::npos);
@@ -421,14 +421,14 @@ TEST(OptionsTest, OptionsDump) {
 TEST(ErrorHandlingTest, MissingRequiredArgument) {
     const std::string doc = "Usage: prog <required>";
     char const* argv[] = {};
-    EXPECT_THROW(docoptcpp03::Docopt(doc, make_args(argv, 0)), DocoptExit);
+    EXPECT_THROW(docoptcpp03::docopt_parse(doc, make_args(argv, 0)), DocoptExit);
 }
 
 TEST(ErrorHandlingTest, UnexpectedOption) {
     const std::string doc = "Usage: prog";
     char const* argv[] = { "--unexpected" };
     try {
-        docoptcpp03::Docopt(doc, make_args(argv, 1));
+        docoptcpp03::docopt_parse(doc, make_args(argv, 1));
         FAIL() << "Expected DocoptExit exception";
     } catch (const docoptcpp03::DocoptExit& e) {
         EXPECT_EQ(1, e.status);
@@ -438,13 +438,13 @@ TEST(ErrorHandlingTest, UnexpectedOption) {
 TEST(ErrorHandlingTest, AmbiguousPrefixOption) {
     const std::string doc = "Usage: prog --aabb | --aa";
     char const* argv[] = { "--a" };
-    EXPECT_THROW(docoptcpp03::Docopt(doc, make_args(argv, 1)), DocoptExit);
+    EXPECT_THROW(docoptcpp03::docopt_parse(doc, make_args(argv, 1)), DocoptExit);
 }
 
 TEST(ErrorHandlingTest, InvalidDocSyntaxNoUsage) {
     const std::string doc = "Invalid doc without usage section";
     char const* argv[] = {};
-    EXPECT_THROW(docoptcpp03::Docopt(doc, make_args(argv, 0)), DocoptLanguageError);
+    EXPECT_THROW(docoptcpp03::docopt_parse(doc, make_args(argv, 0)), DocoptLanguageError);
 }
 
 TEST(ErrorHandlingTest, HelpAndVersionExitStatus) {
@@ -452,7 +452,7 @@ TEST(ErrorHandlingTest, HelpAndVersionExitStatus) {
     
     char const* help_argv[] = { "--help" };
     try {
-        docoptcpp03::Docopt(doc, make_args(help_argv, 1), true, "2.0.0");
+        docoptcpp03::docopt_parse(doc, make_args(help_argv, 1), true, "2.0.0");
         FAIL() << "Expected DocoptExitHelp exception";
     } catch (const docoptcpp03::DocoptExitHelp& e) {
         EXPECT_EQ(0, e.status);
@@ -461,7 +461,7 @@ TEST(ErrorHandlingTest, HelpAndVersionExitStatus) {
 
     char const* ver_argv[] = { "--version" };
     try {
-        docoptcpp03::Docopt(doc, make_args(ver_argv, 1), true, "2.0.0");
+        docoptcpp03::docopt_parse(doc, make_args(ver_argv, 1), true, "2.0.0");
         FAIL() << "Expected DocoptExitVersion exception";
     } catch (const docoptcpp03::DocoptExitVersion& e) {
         EXPECT_EQ(0, e.status);
@@ -473,9 +473,11 @@ TEST(ErrorHandlingTest, StackedShortOptionWithUnknown) {
     const std::string doc = "Usage: prog [-h | --help]\n\nOptions:\n  -h --help  Show help";
     char const* argv[] = { "-hoge" };
     try {
-        docoptcpp03::Docopt(doc, make_args(argv, 1), true);
+        docoptcpp03::docopt_parse(doc, make_args(argv, 1), true);
         FAIL() << "Expected DocoptArgumentError exception";
     } catch (const docoptcpp03::DocoptArgumentError& e) {
         EXPECT_EQ(1, e.status);
     }
 }
+
+

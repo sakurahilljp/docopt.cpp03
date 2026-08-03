@@ -37,30 +37,27 @@ static const char USAGE[] =
 "  --drifting    Drifting mine.\n";
 
 int main(int argc, char* argv[]) {
-    try {
-        // Pass argc - 1 and argv + 1 (excluding program name)
-        const docoptcpp03::Options result = docoptcpp03::Docopt(USAGE, argc - 1, argv + 1, true, "Naval Fate 2.0");
+    // 1. Convenience method: docopt() handles --help, --version, and argument errors automatically via std::exit(status)
+    const docoptcpp03::Options result = docoptcpp03::docopt(USAGE, argc - 1, argv + 1, true, "Naval Fate 2.0");
 
-        for (docoptcpp03::Options::const_iterator it = result.begin(); it != result.end(); ++it) {
-            std::cout << it->first << ": " << it->second << std::endl;
-        }
-    } catch (const docoptcpp03::DocoptExit& e) {
-        // Handle help / version / user input argument errors
-        std::cout << e.usage << std::endl;
-        return e.status;
-    } catch (const docoptcpp03::DocoptLanguageError& e) {
-        // Handle developer docstring syntax errors
-        std::cerr << "Language error: " << e.what() << std::endl;
-        return 1;
+    for (docoptcpp03::Options::const_iterator it = result.begin(); it != result.end(); ++it) {
+        std::cout << it->first << ": " << it->second << std::endl;
     }
 
     return 0;
 }
 ```
 
+## Parsing Functions: `docopt()` vs `docopt_parse()`
+
+`docoptcpp03` provides two functions depending on your error handling needs:
+
+- **`docoptcpp03::docopt(...)`**: Convenient auto-exiting parser. Automatically catches exceptions, prints help/error messages to `std::cout`/`std::cerr`, and calls `std::exit(status)`. Ideal for standard CLI applications.
+- **`docoptcpp03::docopt_parse(...)`**: Pure parser that throws exceptions on help, version, or syntax errors. Ideal when you want to handle exceptions manually or embed the parser in larger applications.
+
 ## Exception Handling (`DocoptExit` & `DocoptLanguageError`)
 
-`docoptcpp03` defines a structured exception hierarchy under the `docoptcpp03` namespace:
+`docoptcpp03` defines a structured exception hierarchy under the `docoptcpp03` namespace for use with `docopt_parse()`:
 
 ### `DocoptExit` Hierarchy
 
@@ -76,13 +73,13 @@ int main(int argc, char* argv[]) {
 - `e.usage`: Formatted usage text or version string.
 - `e.what()`: Detailed descriptive error message.
 
-#### Recommended Handling Pattern
+#### Recommended Handling Pattern for `docopt_parse()`
 
 You can catch all exit conditions uniformly via `DocoptExit`, or catch specific conditions individually:
 
 ```cpp
 try {
-    const docoptcpp03::Options opts = docoptcpp03::Docopt(USAGE, argc - 1, argv + 1, true, "1.0.0");
+    const docoptcpp03::Options opts = docoptcpp03::docopt_parse(USAGE, argc - 1, argv + 1, true, "1.0.0");
     // Normal application execution logic
 } catch (const docoptcpp03::DocoptExitHelp& e) {
     std::cout << e.usage << std::endl;

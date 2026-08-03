@@ -192,7 +192,8 @@ std::ostream& operator<<(std::ostream& os, const Options& opts);
 // Main Docopt Functions
 //------------------------------------------------------------------------------
 
-Options Docopt(
+// docopt_parse: Parses arguments and throws DocoptExit (DocoptExitHelp, DocoptExitVersion, DocoptArgumentError) or DocoptLanguageError.
+Options docopt_parse(
     const std::string& doc,
     const std::vector<std::string>& argv,
     bool help = true,
@@ -200,7 +201,7 @@ Options Docopt(
     bool options_first = false
 );
 
-Options Docopt(
+Options docopt_parse(
     const std::string& doc,
     int argc,
     char const* const argv[],
@@ -208,6 +209,26 @@ Options Docopt(
     const std::string& version = "",
     bool options_first = false
 );
+
+// docopt: Convenience function that catches DocoptExit / DocoptLanguageError, prints usage/error messages, and exits via std::exit(status).
+Options docopt(
+    const std::string& doc,
+    const std::vector<std::string>& argv,
+    bool help = true,
+    const std::string& version = "",
+    bool options_first = false
+);
+
+Options docopt(
+    const std::string& doc,
+    int argc,
+    char const* const argv[],
+    bool help = true,
+    const std::string& version = "",
+    bool options_first = false
+);
+
+
 
 } // namespace docoptcpp03
 

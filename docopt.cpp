@@ -1370,10 +1370,10 @@ static void extras(bool help, const std::string& version, const std::vector<Patt
 }
 
 //------------------------------------------------------------------------------
-// Main docopt Entry Point
+// Main docopt Entry Points
 //------------------------------------------------------------------------------
 
-Options Docopt(
+Options docopt_parse(
     const std::string& doc,
     const std::vector<std::string>& argv,
     bool help,
@@ -1451,7 +1451,7 @@ Options Docopt(
     throw DocoptArgumentError("", usage_str);
 }
 
-Options Docopt(
+Options docopt_parse(
     const std::string& doc,
     int argc,
     char const* const argv[],
@@ -1467,7 +1467,46 @@ Options Docopt(
             }
         }
     }
-    return Docopt(doc, args, help, version, options_first);
+    return docopt_parse(doc, args, help, version, options_first);
+}
+
+Options docopt(
+    const std::string& doc,
+    const std::vector<std::string>& argv,
+    bool help,
+    const std::string& version,
+    bool options_first
+) {
+    try {
+        return docopt_parse(doc, argv, help, version, options_first);
+    } catch (const DocoptExit& e) {
+        if (!e.usage.empty()) {
+            std::cout << e.usage << std::endl;
+        }
+        std::exit(e.status);
+    } catch (const DocoptLanguageError& e) {
+        std::cerr << "Docopt language error: " << e.what() << std::endl;
+        std::exit(1);
+    }
+}
+
+Options docopt(
+    const std::string& doc,
+    int argc,
+    char const* const argv[],
+    bool help,
+    const std::string& version,
+    bool options_first
+) {
+    std::vector<std::string> args;
+    if (argc > 0 && argv) {
+        for (int i = 0; i < argc; ++i) {
+            if (argv[i]) {
+                args.push_back(argv[i]);
+            }
+        }
+    }
+    return docopt(doc, args, help, version, options_first);
 }
 
 } // namespace docoptcpp03
