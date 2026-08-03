@@ -162,6 +162,20 @@ TEST(ExceptionTest, DocoptExitException) {
     EXPECT_EQ(0, ex_success.status);
 }
 
+TEST(ExceptionTest, DerivedExitExceptions) {
+    DocoptExitHelp help_ex("Usage: myapp --help");
+    EXPECT_EQ(0, help_ex.status);
+    EXPECT_EQ("Usage: myapp --help", help_ex.usage);
+
+    DocoptExitVersion ver_ex("1.2.3");
+    EXPECT_EQ(0, ver_ex.status);
+    EXPECT_EQ("1.2.3", ver_ex.usage);
+
+    DocoptArgumentError arg_ex("Invalid arg", "Usage: myapp");
+    EXPECT_EQ(1, arg_ex.status);
+    EXPECT_EQ("Usage: myapp", arg_ex.usage);
+}
+
 TEST(ExceptionTest, DocoptLanguageErrorException) {
     DocoptLanguageError ex("Invalid doc grammar");
     EXPECT_STREQ("Invalid doc grammar", ex.what());
@@ -439,8 +453,8 @@ TEST(ErrorHandlingTest, HelpAndVersionExitStatus) {
     char const* help_argv[] = { "--help" };
     try {
         docoptcpp03::Docopt(doc, make_args(help_argv, 1), true, "2.0.0");
-        FAIL() << "Expected DocoptExit exception";
-    } catch (const docoptcpp03::DocoptExit& e) {
+        FAIL() << "Expected DocoptExitHelp exception";
+    } catch (const docoptcpp03::DocoptExitHelp& e) {
         EXPECT_EQ(0, e.status);
         EXPECT_TRUE(e.usage.find("Usage: prog") != std::string::npos);
     }
@@ -448,8 +462,8 @@ TEST(ErrorHandlingTest, HelpAndVersionExitStatus) {
     char const* ver_argv[] = { "--version" };
     try {
         docoptcpp03::Docopt(doc, make_args(ver_argv, 1), true, "2.0.0");
-        FAIL() << "Expected DocoptExit exception";
-    } catch (const docoptcpp03::DocoptExit& e) {
+        FAIL() << "Expected DocoptExitVersion exception";
+    } catch (const docoptcpp03::DocoptExitVersion& e) {
         EXPECT_EQ(0, e.status);
         EXPECT_EQ("2.0.0", e.usage);
     }
@@ -460,8 +474,8 @@ TEST(ErrorHandlingTest, StackedShortOptionWithUnknown) {
     char const* argv[] = { "-hoge" };
     try {
         docoptcpp03::Docopt(doc, make_args(argv, 1), true);
-        FAIL() << "Expected DocoptExit exception";
-    } catch (const docoptcpp03::DocoptExit& e) {
+        FAIL() << "Expected DocoptArgumentError exception";
+    } catch (const docoptcpp03::DocoptArgumentError& e) {
         EXPECT_EQ(1, e.status);
     }
 }

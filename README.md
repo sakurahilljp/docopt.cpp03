@@ -60,33 +60,41 @@ int main(int argc, char* argv[]) {
 
 ## Exception Handling (`DocoptExit` & `DocoptLanguageError`)
 
-`docoptcpp03` defines two exception classes under the `docoptcpp03` namespace:
+`docoptcpp03` defines a structured exception hierarchy under the `docoptcpp03` namespace:
 
-### `DocoptExit`
+### `DocoptExit` Hierarchy
 
-`DocoptExit` is thrown when command-line argument parsing encounters an event that requires program termination.
+`DocoptExit` (inheriting from `std::runtime_error`) is the base class thrown when command-line argument parsing requires program exit. It provides three specialized derived exception classes:
 
-#### When is `DocoptExit` thrown?
+1. **`DocoptExitHelp`**: Thrown when the user requests help via `-h` or `--help`. (`e.status == 0`, `e.usage` contains help text)
+2. **`DocoptExitVersion`**: Thrown when the user requests version information via `--version`. (`e.status == 0`, `e.usage` contains version string)
+3. **`DocoptArgumentError`**: Thrown when command-line arguments are invalid or malformed (e.g. missing arguments, unrecognized options). (`e.status == 1`, `e.usage` contains usage pattern)
 
-1. **Invalid User Command-Line Arguments**: When the arguments supplied by the user do not match the specified `USAGE` pattern (e.g., missing required arguments, unrecognized options, ambiguous option prefixes).
-2. **Help Flag (`-h`, `--help`)**: When the user requests help via `-h` or `--help` (when `help = true` is passed to `Docopt`).
-3. **Version Flag (`--version`)**: When the user requests the version via `--version` (when a non-empty `version` string is passed to `Docopt`).
+#### Class Properties
 
-#### Meaning and Structure
-
-- Inherits from `std::runtime_error`.
-- `e.status`: Exit status integer (`0` for `--help`/`--version` success, `1` for argument parsing errors).
-- `e.usage`: Contains the formatted usage message or help text intended for display to the user.
-- `e.what()`: Contains a descriptive error message or combined usage text.
+- `e.status`: Exit status integer (`0` for `--help`/`--version`, `1` for argument errors).
+- `e.usage`: Formatted usage text or version string.
+- `e.what()`: Detailed descriptive error message.
 
 #### Recommended Handling Pattern
+
+You can catch all exit conditions uniformly via `DocoptExit`, or catch specific conditions individually:
 
 ```cpp
 try {
     const docoptcpp03::Options opts = docoptcpp03::Docopt(USAGE, argc - 1, argv + 1, true, "1.0.0");
     // Normal application execution logic
+} catch (const docoptcpp03::DocoptExitHelp& e) {
+    std::cout << e.usage << std::endl;
+    return e.status; // 0
+} catch (const docoptcpp03::DocoptExitVersion& e) {
+    std::cout << e.usage << std::endl;
+    return e.status; // 0
+} catch (const docoptcpp03::DocoptArgumentError& e) {
+    std::cerr << "Invalid arguments!\n" << e.usage << std::endl;
+    return e.status; // 1
 } catch (const docoptcpp03::DocoptExit& e) {
-    // Output the usage message and exit with appropriate status code
+    // Catch-all fallback for any DocoptExit
     std::cout << e.usage << std::endl;
     return e.status;
 } catch (const docoptcpp03::DocoptLanguageError& e) {
