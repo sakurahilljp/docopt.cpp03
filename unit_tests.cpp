@@ -152,6 +152,29 @@ TEST(ValueTest, DoubleValue) {
     EXPECT_DOUBLE_EQ(1.5, v_empty.as_double_or(1.5));
 }
 
+// Tests for docopt for C++11 value CamelCase compatibility methods
+TEST(ValueTest, CamelCaseCompatibilityMethods) {
+    Value v_bool(true);
+    EXPECT_TRUE(v_bool.isBool());
+    EXPECT_TRUE(v_bool.asBool());
+
+    Value v_long(100L);
+    EXPECT_TRUE(v_long.isLong());
+    EXPECT_EQ(100L, v_long.asLong());
+    EXPECT_DOUBLE_EQ(100.0, v_long.asDouble());
+
+    Value v_str("test string");
+    EXPECT_TRUE(v_str.isString());
+    EXPECT_EQ("test string", v_str.asString());
+
+    std::vector<std::string> list;
+    list.push_back("a");
+    list.push_back("b");
+    Value v_list(list);
+    EXPECT_TRUE(v_list.isStringList());
+    EXPECT_EQ(2u, v_list.asStringList().size());
+}
+
 TEST(ExceptionTest, DocoptExitException) {
     DocoptExit ex("User exit", "Usage: prog");
     EXPECT_STREQ("User exit\nUsage: prog", ex.what());
