@@ -83,6 +83,7 @@ static std::string trim(const std::string& str, const std::string& drop = " \t\n
 }
 
 static std::string replace_all(std::string str, const std::string& from, const std::string& to) {
+    if (from.empty()) return str;
     size_t start_pos = 0;
     while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
         str.replace(start_pos, from.length(), to);
@@ -93,16 +94,51 @@ static std::string replace_all(std::string str, const std::string& from, const s
 
 static std::vector<std::string> split_words(const std::string& str) {
     std::vector<std::string> result;
-    std::istringstream iss(str);
-    std::string token;
-    while (iss >> token) {
-        result.push_back(token);
+    size_t len = str.length();
+    size_t i = 0;
+    while (i < len) {
+        while (i < len && std::isspace(static_cast<unsigned char>(str[i]))) {
+            ++i;
+        }
+        if (i >= len) break;
+        size_t start = i;
+        while (i < len && !std::isspace(static_cast<unsigned char>(str[i]))) {
+            ++i;
+        }
+        result.push_back(str.substr(start, i - start));
     }
     return result;
 }
 
 //------------------------------------------------------------------------------
 // Value Implementation
+//------------------------------------------------------------------------------
+
+double Value::as_double() const {
+    if (kind_ == KIND_LONG) {
+        return static_cast<double>(long_val_);
+    }
+    if (kind_ == KIND_STRING) {
+#if defined(DOCOPT_USE_CUSTOM_LEXICAL_CAST)
+        return boost::lexical_cast<double>(str_val_);
+#else
+        return boost::lexical_cast<double>(str_val_);
+#endif
+    }
+    if (kind_ == KIND_BOOL) {
+        return bool_val_ ? 1.0 : 0.0;
+    }
+    throw std::runtime_error("Value cannot be converted to double.");
+}
+
+double Value::as_double_or(double default_val) const {
+    if (is_empty()) return default_val;
+    try {
+        return as_double();
+    } catch (...) {
+        return default_val;
+    }
+}
 //------------------------------------------------------------------------------
 
 bool Value::operator==(const Value& other) const {
@@ -900,7 +936,7 @@ public:
         if (error_type_ == ERROR_LANGUAGE) {
             throw DocoptLanguageError(msg);
         } else {
-            throw DocoptExit(msg);
+            throw DocoptExit(1, msg);
         }
     }
 
@@ -1292,22 +1328,42 @@ static std::string formal_usage(const std::string& section) {
     return result;
 }
 
-static void extras(bool help, const std::string& version, const std::vector<PatternPtr>& options, const std::string& doc) {
+static bool is_known_option(const PatternPtr& opt, const std::vector<PatternPtr>& doc_options) {
+    if (opt->kind() != KIND_OPTION) return true;
+    Option* o = static_cast<Option*>(opt.get());
+    for (size_t i = 0; i < doc_options.size(); ++i) {
+        if (doc_options[i]->kind() == KIND_OPTION) {
+            Option* d = static_cast<Option*>(doc_options[i].get());
+            if ((!o->short_name.empty() && o->short_name == d->short_name) ||
+                (!o->long_name.empty() && o->long_name == d->long_name)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static void extras(bool help, const std::string& version, const std::vector<PatternPtr>& argv_options, const std::vector<PatternPtr>& doc_options, const std::string& doc) {
+    for (size_t i = 0; i < argv_options.size(); ++i) {
+        if (!is_known_option(argv_options[i], doc_options)) {
+            return;
+        }
+    }
+
     if (help) {
-        for (size_t i = 0; i < options.size(); ++i) {
-            std::string n = options[i]->name();
-            if ((n == "-h" || n == "--help") && options[i]->get_value().is_bool() && options[i]->get_value().as_bool()) {
-                std::cout << trim(doc, "\n") << std::endl;
-                std::exit(0);
+        for (size_t i = 0; i < argv_options.size(); ++i) {
+            std::string n = argv_options[i]->name();
+            if ((n == "-h" || n == "--help") && argv_options[i]->get_value().is_bool() && argv_options[i]->get_value().as_bool()) {
+                std::string help_doc = trim(doc, "\n");
+                throw DocoptExit(0, help_doc, help_doc);
             }
         }
     }
     if (!version.empty()) {
-        for (size_t i = 0; i < options.size(); ++i) {
-            std::string n = options[i]->name();
-            if (n == "--version" && options[i]->get_value().is_bool() && options[i]->get_value().as_bool()) {
-                std::cout << version << std::endl;
-                std::exit(0);
+        for (size_t i = 0; i < argv_options.size(); ++i) {
+            std::string n = argv_options[i]->name();
+            if (n == "--version" && argv_options[i]->get_value().is_bool() && argv_options[i]->get_value().as_bool()) {
+                throw DocoptExit(0, version, version);
             }
         }
     }
@@ -1334,7 +1390,8 @@ Options Docopt(
 
     std::string usage_str = usage_sections[0];
 
-    std::vector<PatternPtr> options = parse_defaults(doc);
+    std::vector<PatternPtr> doc_options = parse_defaults(doc);
+    std::vector<PatternPtr> options = doc_options;
 
     PatternPtr pattern = parse_pattern(formal_usage(usage_str), options);
 
@@ -1350,26 +1407,26 @@ Options Docopt(
     std::vector<PatternPtr> options_shortcuts = pattern->flat(shortcut_kinds);
 
     for (size_t i = 0; i < options_shortcuts.size(); ++i) {
-        std::vector<PatternPtr> doc_options = parse_defaults(doc);
+        std::vector<PatternPtr> parse_doc_options = parse_defaults(doc);
 
         std::vector<PatternPtr> children;
-        for (size_t d = 0; d < doc_options.size(); ++d) {
+        for (size_t d = 0; d < parse_doc_options.size(); ++d) {
             bool in_pattern = false;
             for (size_t p = 0; p < pattern_options.size(); ++p) {
-                if (doc_options[d]->name() == pattern_options[p]->name()) {
+                if (parse_doc_options[d]->name() == pattern_options[p]->name()) {
                     in_pattern = true;
                     break;
                 }
             }
             if (!in_pattern) {
-                Option* opt_ptr = static_cast<Option*>(doc_options[d].get());
+                Option* opt_ptr = static_cast<Option*>(parse_doc_options[d].get());
                 children.push_back(PatternPtr(new Option(opt_ptr->short_name, opt_ptr->long_name, opt_ptr->argcount, opt_ptr->get_value())));
             }
         }
         options_shortcuts[i]->children() = children;
     }
 
-    extras(help, version, argv_parsed, doc);
+    extras(help, version, argv_parsed, doc_options, doc);
 
     PatternPtr fixed_pattern = pattern->fix();
     Pattern::MatchResult match_res = fixed_pattern->match(argv_parsed);
@@ -1391,7 +1448,7 @@ Options Docopt(
         return result;
     }
 
-    throw DocoptExit("", usage_str);
+    throw DocoptExit(1, "", usage_str);
 }
 
 Options Docopt(

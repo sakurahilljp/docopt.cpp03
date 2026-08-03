@@ -1,6 +1,10 @@
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-cmake_minimum_required(VERSION 3.5)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.14)
+cmake_minimum_required(VERSION 3.14)
 project(docopt_cpp03 CXX)
+
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
 
 set(CMAKE_CXX_STANDARD 98)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,14 +13,47 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
     add_compile_options(/W4)
 else()
-    add_compile_options(-std=c++03 -Wall -Wextra)
+    add_compile_options(-std=c++03 -Wall -Wextra -Wshadow -Wsign-compare)
 endif()
 
 add_definitions(-DDOCOPT_USE_CUSTOM_LEXICAL_CAST)
 
 # docopt library
 add_library(docopt STATIC docopt.cpp docopt.h)
-target_include_directories(docopt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(docoptcpp03::docopt ALIAS docopt)
+target_include_directories(docopt PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
+
+# Installation & Export targets
+include(GNUInstallDirs)
+install(TARGETS docopt
+    EXPORT docoptcpp03Targets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES docopt.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT docoptcpp03Targets
+    FILE docoptcpp03Targets.cmake
+    NAMESPACE docoptcpp03::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/docoptcpp03
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/docoptcpp03Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/docoptcpp03Config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/docoptcpp03"
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/docoptcpp03Config.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/docoptcpp03"
+)
 
 # Legacy docopt testcases runner executable
 add_executable(test_docopt test_docopt.cpp)
@@ -48,3 +85,4 @@ target_link_libraries(naval_fate PRIVATE docopt)
 
 add_executable(calculator cmds/calculator/main.cpp)
 target_link_libraries(calculator PRIVATE docopt)
+

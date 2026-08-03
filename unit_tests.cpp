@@ -141,10 +141,25 @@ TEST(ValueTest, EqualityAndComparison) {
 // 2. Exception Handling Tests
 //------------------------------------------------------------------------------
 
+TEST(ValueTest, DoubleValue) {
+    Value v_long(42L);
+    EXPECT_DOUBLE_EQ(42.0, v_long.as_double());
+
+    Value v_str("3.14159");
+    EXPECT_DOUBLE_EQ(3.14159, v_str.as_double());
+
+    Value v_empty;
+    EXPECT_DOUBLE_EQ(1.5, v_empty.as_double_or(1.5));
+}
+
 TEST(ExceptionTest, DocoptExitException) {
     DocoptExit ex("User exit", "Usage: prog");
     EXPECT_STREQ("User exit\nUsage: prog", ex.what());
     EXPECT_EQ("Usage: prog", ex.usage);
+    EXPECT_EQ(1, ex.status);
+
+    DocoptExit ex_success(0, "Help", "Usage: prog");
+    EXPECT_EQ(0, ex_success.status);
 }
 
 TEST(ExceptionTest, DocoptLanguageErrorException) {
@@ -398,7 +413,12 @@ TEST(ErrorHandlingTest, MissingRequiredArgument) {
 TEST(ErrorHandlingTest, UnexpectedOption) {
     const std::string doc = "Usage: prog";
     char const* argv[] = { "--unexpected" };
-    EXPECT_THROW(docoptcpp03::Docopt(doc, make_args(argv, 1)), DocoptExit);
+    try {
+        docoptcpp03::Docopt(doc, make_args(argv, 1));
+        FAIL() << "Expected DocoptExit exception";
+    } catch (const docoptcpp03::DocoptExit& e) {
+        EXPECT_EQ(1, e.status);
+    }
 }
 
 TEST(ErrorHandlingTest, AmbiguousPrefixOption) {
@@ -411,4 +431,37 @@ TEST(ErrorHandlingTest, InvalidDocSyntaxNoUsage) {
     const std::string doc = "Invalid doc without usage section";
     char const* argv[] = {};
     EXPECT_THROW(docoptcpp03::Docopt(doc, make_args(argv, 0)), DocoptLanguageError);
+}
+
+TEST(ErrorHandlingTest, HelpAndVersionExitStatus) {
+    const std::string doc = "Usage: prog --help\n       prog --version\n\nOptions:\n  --help     Show help\n  --version  Show version";
+    
+    char const* help_argv[] = { "--help" };
+    try {
+        docoptcpp03::Docopt(doc, make_args(help_argv, 1), true, "2.0.0");
+        FAIL() << "Expected DocoptExit exception";
+    } catch (const docoptcpp03::DocoptExit& e) {
+        EXPECT_EQ(0, e.status);
+        EXPECT_TRUE(e.usage.find("Usage: prog") != std::string::npos);
+    }
+
+    char const* ver_argv[] = { "--version" };
+    try {
+        docoptcpp03::Docopt(doc, make_args(ver_argv, 1), true, "2.0.0");
+        FAIL() << "Expected DocoptExit exception";
+    } catch (const docoptcpp03::DocoptExit& e) {
+        EXPECT_EQ(0, e.status);
+        EXPECT_EQ("2.0.0", e.usage);
+    }
+}
+
+TEST(ErrorHandlingTest, StackedShortOptionWithUnknown) {
+    const std::string doc = "Usage: prog [-h | --help]\n\nOptions:\n  -h --help  Show help";
+    char const* argv[] = { "-hoge" };
+    try {
+        docoptcpp03::Docopt(doc, make_args(argv, 1), true);
+        FAIL() << "Expected DocoptExit exception";
+    } catch (const docoptcpp03::DocoptExit& e) {
+        EXPECT_EQ(1, e.status);
+    }
 }

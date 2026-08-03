@@ -32,7 +32,9 @@ public:
 class DocoptExit : public std::runtime_error {
 public:
     std::string usage;
+    int status;
 
+    explicit DocoptExit(int exit_status, const std::string& message = "", const std::string& usage_str = "");
     explicit DocoptExit(const std::string& message = "", const std::string& usage_str = "");
     ~DocoptExit() throw();
 };
@@ -71,11 +73,13 @@ public:
 
     bool as_bool() const;
     long as_long() const;
+    double as_double() const;
     const std::string& as_string() const;
     const std::vector<std::string>& as_string_list() const;
 
     bool as_bool_or(bool default_val) const;
     long as_long_or(long default_val) const;
+    double as_double_or(double default_val) const;
     std::string as_string_or(const std::string& default_val) const;
     std::string as_string_or(const char* default_val) const;
 
@@ -241,10 +245,17 @@ namespace docoptcpp03 {
 inline DocoptLanguageError::DocoptLanguageError(const std::string& message)
     : std::runtime_error(message) {}
 
+inline DocoptExit::DocoptExit(int exit_status, const std::string& message, const std::string& usage_str)
+    : std::runtime_error(message.empty() ? (usage_str.empty() ? "DocoptExit" : usage_str)
+                                         : (usage_str.empty() ? message : message + "\n" + usage_str)),
+      usage(usage_str),
+      status(exit_status) {}
+
 inline DocoptExit::DocoptExit(const std::string& message, const std::string& usage_str)
     : std::runtime_error(message.empty() ? (usage_str.empty() ? "DocoptExit" : usage_str)
                                          : (usage_str.empty() ? message : message + "\n" + usage_str)),
-      usage(usage_str) {}
+      usage(usage_str),
+      status(1) {}
 
 inline DocoptExit::~DocoptExit() throw() {}
 

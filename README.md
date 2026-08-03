@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     } catch (const docoptcpp03::DocoptExit& e) {
         // Handle help / version / user input argument errors
         std::cout << e.usage << std::endl;
-        return 0;
+        return e.status;
     } catch (const docoptcpp03::DocoptLanguageError& e) {
         // Handle developer docstring syntax errors
         std::cerr << "Language error: " << e.what() << std::endl;
@@ -75,6 +75,7 @@ int main(int argc, char* argv[]) {
 #### Meaning and Structure
 
 - Inherits from `std::runtime_error`.
+- `e.status`: Exit status integer (`0` for `--help`/`--version` success, `1` for argument parsing errors).
 - `e.usage`: Contains the formatted usage message or help text intended for display to the user.
 - `e.what()`: Contains a descriptive error message or combined usage text.
 
@@ -85,9 +86,9 @@ try {
     const docoptcpp03::Options opts = docoptcpp03::Docopt(USAGE, argc - 1, argv + 1, true, "1.0.0");
     // Normal application execution logic
 } catch (const docoptcpp03::DocoptExit& e) {
-    // Output the usage message and exit gracefully
+    // Output the usage message and exit with appropriate status code
     std::cout << e.usage << std::endl;
-    return 0;
+    return e.status;
 } catch (const docoptcpp03::DocoptLanguageError& e) {
     // Log developer docstring syntax error
     std::cerr << "Docopt docstring error: " << e.what() << std::endl;
@@ -107,6 +108,16 @@ cd build
 cmake ..
 make
 ctest --output-on-failure
+```
+
+### Integrating with CMake
+
+You can use `find_package` or `FetchContent` to easily incorporate `docopt.cpp03` into your CMake project:
+
+```cmake
+# Using find_package after installing
+find_package(docoptcpp03 REQUIRED)
+target_link_libraries(my_target PRIVATE docoptcpp03::docopt)
 ```
 
 ### Running GoogleTest Unit Tests Directly
@@ -146,12 +157,14 @@ The result of `docoptcpp03::Docopt` is `docoptcpp03::Options`. `docoptcpp03::Val
 | :--- | :--- | :--- | :--- |
 | `val.as_bool()` | `bool` | Gets boolean value (`true` / `false`) | `opts["--verbose"].as_bool()` |
 | `val.as_long()` | `long` | Gets long integer value | `opts["--count"].as_long()` |
+| `val.as_double()` | `double` | Gets floating-point value (converted from number or string) | `opts["--speed"].as_double()` |
 | `val.as_string()` | `const std::string&` | Gets string value | `opts["<file>"].as_string()` |
 | `val.as_string_list()` | `const std::vector<std::string>&` | Gets vector of string arguments | `opts["<file>"].as_string_list()` |
 | `val.as<T>()` | `T` | Converts single value to type `T` via `boost::lexical_cast<T>` | `opts["--port"].as<int>()` |
 | `val.as_list<T>()` | `std::vector<T>` | Converts string list to `std::vector<T>` via `boost::lexical_cast<T>` | `opts["<nums>"].as_list<int>()` |
 | `val.as_bool_or(default_val)` | `bool` | Gets boolean value or returns fallback if empty | `opts["--flag"].as_bool_or(false)` |
 | `val.as_long_or(default_val)` | `long` | Gets long value or returns fallback if empty | `opts["--count"].as_long_or(1L)` |
+| `val.as_double_or(default_val)` | `double` | Gets double value or returns fallback if empty | `opts["--speed"].as_double_or(1.0)` |
 | `val.as_string_or(default_val)` | `std::string` | Gets string value or returns fallback if empty | `opts["--output"].as_string_or("stdout")` |
 | `val.as_or<T>(default_val)` | `T` | Converts single value to type `T` or returns fallback if empty | `opts["--speed"].as_or<double>(0.05)` |
 | `val.is_truthy()` | `bool` | Returns `true` if flag is `true` or non-empty value is set | `opts["--verbose"].is_truthy()` |

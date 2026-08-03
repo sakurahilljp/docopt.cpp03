@@ -54,8 +54,10 @@ int main(int argc, char* argv[]) {
         }
     } catch (const docoptcpp03::DocoptExit& e) {
         std::cout << e.usage << std::endl;
+        return e.status;
     } catch (const docoptcpp03::DocoptLanguageError& e) {
         std::cerr << "Docopt language error: " << e.what() << std::endl;
+        return 1;
     }
 
     return 0;
