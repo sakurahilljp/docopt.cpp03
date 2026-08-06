@@ -517,5 +517,34 @@ TEST(ValueTest, EmptyStringArgument) {
     EXPECT_TRUE(res["--option"].is_string());
 }
 
+TEST(OptionsTest, CustomSectionNamesPartialMatch) {
+    const std::string doc =
+        "Usage:\n"
+        "  program [options]\n"
+        "\n"
+        "Standard Options:\n"
+        "  --verbose      Enable verbose output.\n"
+        "\n"
+        "Advanced Options:\n"
+        "  --speed=<kn>   Set speed [default: 10].\n";
+
+    // Test case 1: Defaults
+    {
+        char const* argv[] = {};
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 0));
+        EXPECT_FALSE(res["--verbose"].as_bool());
+        EXPECT_EQ("10", res["--speed"].as_string());
+    }
+
+    // Test case 2: Provided values
+    {
+        char const* argv[] = { "--speed=20", "--verbose" };
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+        EXPECT_TRUE(res["--verbose"].as_bool());
+        EXPECT_EQ("20", res["--speed"].as_string());
+    }
+}
+
+
 
 
