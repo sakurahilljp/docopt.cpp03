@@ -545,6 +545,28 @@ TEST(OptionsTest, CustomSectionNamesPartialMatch) {
     }
 }
 
+TEST(OptionsTest, UnrecognizedSectionsIgnored) {
+    const std::string doc =
+        "Usage:\n"
+        "  program --foo\n"
+        "\n"
+        "Description:\n"
+        "  This is a description. It should be ignored by the parser.\n"
+        "  Even if we write --bar here, it should not be parsed as an option.\n"
+        "\n"
+        "Examples:\n"
+        "  program --foo\n";
+
+    // Test case: Parsing should succeed with --foo and ignore other sections
+    {
+        char const* argv[] = { "--foo" };
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+        EXPECT_TRUE(res["--foo"].as_bool());
+        EXPECT_TRUE(res["--bar"].is_empty()); // --bar is ignored and should be empty
+    }
+}
+
+
 
 
 
