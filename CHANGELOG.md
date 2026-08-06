@@ -4,10 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2026-08-07
 
+### Added
+- Added documentation in `README.md` explaining help message section parsing rules:
+  - Details on case-insensitivity and the requirement of a trailing colon (`:`).
+  - Explanation of substring/partial matching for custom section names (e.g., `Standard Options:`, `Advanced Options:`, `PROGRAM USAGE:`).
+  - Explanation of how unrecognized sections (e.g., `Description:`, `Examples:`) are treated (ignored by parser, printed on help request).
+  - Concrete examples for both custom section names and unrecognized sections.
+- Added a GoogleTest unit test case `CustomSectionNamesPartialMatch` in `unit_tests.cpp` to verify partial match section parsing.
+- Added a GoogleTest unit test case `UnrecognizedSectionsIgnored` in `unit_tests.cpp` to verify that sections not containing `"usage:"` or `"options:"` are ignored by the parser.
+
 ### Fixed
 - Fixed a bug in `docopt.cpp` where argument parsing terminated prematurely when encountering an empty string (`""`) as a command-line argument.
   - Replaced incorrect `tokens.current().empty()` checks with `tokens.empty()` in `parse_long`, `parse_shorts`, and `parse_argv` to avoid falsely treating an empty string argument as the end of the argument stream.
 - Added a GoogleTest unit test case `EmptyStringArgument` in `unit_tests.cpp` to verify parsing empty string option values and positional arguments.
+
 
 ## [1.0.0] - 2026-07-31
 

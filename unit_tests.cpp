@@ -517,5 +517,56 @@ TEST(ValueTest, EmptyStringArgument) {
     EXPECT_TRUE(res["--option"].is_string());
 }
 
+TEST(OptionsTest, CustomSectionNamesPartialMatch) {
+    const std::string doc =
+        "Usage:\n"
+        "  program [options]\n"
+        "\n"
+        "Standard Options:\n"
+        "  --verbose      Enable verbose output.\n"
+        "\n"
+        "Advanced Options:\n"
+        "  --speed=<kn>   Set speed [default: 10].\n";
+
+    // Test case 1: Defaults
+    {
+        char const* argv[] = {};
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 0));
+        EXPECT_FALSE(res["--verbose"].as_bool());
+        EXPECT_EQ("10", res["--speed"].as_string());
+    }
+
+    // Test case 2: Provided values
+    {
+        char const* argv[] = { "--speed=20", "--verbose" };
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+        EXPECT_TRUE(res["--verbose"].as_bool());
+        EXPECT_EQ("20", res["--speed"].as_string());
+    }
+}
+
+TEST(OptionsTest, UnrecognizedSectionsIgnored) {
+    const std::string doc =
+        "Usage:\n"
+        "  program --foo\n"
+        "\n"
+        "Description:\n"
+        "  This is a description. It should be ignored by the parser.\n"
+        "  Even if we write --bar here, it should not be parsed as an option.\n"
+        "\n"
+        "Examples:\n"
+        "  program --foo\n";
+
+    // Test case: Parsing should succeed with --foo and ignore other sections
+    {
+        char const* argv[] = { "--foo" };
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+        EXPECT_TRUE(res["--foo"].as_bool());
+        EXPECT_TRUE(res["--bar"].is_empty()); // --bar is ignored and should be empty
+    }
+}
+
+
+
 
 

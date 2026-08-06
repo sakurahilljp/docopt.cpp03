@@ -212,6 +212,55 @@ If compiling with `-std=c++03` under newer Boost versions (Boost 1.81+) that req
 #include "docopt.h"
 ```
 
+## Help Message Section Rules
+
+`docopt` automatically parses the help message string (docstring) to extract configurations. The parser looks for specific keywords to define sections.
+
+### Supported Section Names
+- **`usage:`** (Required)
+- **`options:`** (Optional)
+
+### Syntax and Formatting Rules
+- **Case-Insensitive**: Section headers are case-insensitive. `Usage:`, `USAGE:`, `Options:`, and `options:` are all treated identically.
+- **Trailing Colon Required**: Section headers must end with a colon (`:`). For example, `Usage` without a colon will not start a section.
+- **Partial Matching**: The parser searches for headers using substring matching (`std::string::find`). This allows custom prefixes, such as:
+  - `Standard Options:`
+  - `Advanced Options:`
+  - `PROGRAM USAGE:`
+  These are parsed successfully as `options:` or `usage:` sections respectively.
+- **Indentation**: Sub-items and patterns within a section must be indented relative to the section header. The section terminates at the first empty line or unindented block.
+- **Unrecognized Sections**: Any sections that do not contain `"usage:"` or `"options:"` in their headers (e.g., `Description:`, `Examples:`, `Notes:`) are treated as plain text and ignored during argument parsing. However, they are still displayed when the help message is printed.
+
+  **Example of Unrecognized Sections:**
+  ```text
+  Usage:
+    program --help
+
+  Description:
+    This is a sample program. This text is ignored by the parser.
+
+  Examples:
+    program --help
+  ```
+  In this example, both the `Description:` and `Examples:` sections are skipped by the parser during argument validation, but will be printed to standard output when the user runs the program with `--help`.
+
+### Example of Custom Section Names
+
+```text
+PROGRAM USAGE:
+  program [options] <argument>
+
+Standard Options:
+  --verbose       Enable verbose logging.
+
+Developer Options:
+  --debug         Enable debug mode.
+```
+
+In this example:
+1. `PROGRAM USAGE:` is parsed as the `usage:` section due to substring matching.
+2. Both `Standard Options:` and `Developer Options:` contain the substring `"options:"` and are therefore parsed and merged together into the unified options configuration.
+
 ## Docstring Syntax Quick Reference
 
 `docopt` automatically generates command-line parsers by parsing your help message string (`USAGE`). Here is a quick reference for supported `USAGE` patterns:
