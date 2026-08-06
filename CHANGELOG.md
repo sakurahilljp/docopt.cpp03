@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
   - Concrete examples for both custom section names and unrecognized sections.
 - Added a GoogleTest unit test case `CustomSectionNamesPartialMatch` in `unit_tests.cpp` to verify partial match section parsing.
 - Added a GoogleTest unit test case `UnrecognizedSectionsIgnored` in `unit_tests.cpp` to verify that sections not containing `"usage:"` or `"options:"` are ignored by the parser.
+- Added a GoogleTest unit test case `MultilineUsageAndOptions` in `unit_tests.cpp` to verify parsing of options and usage patterns spread across multiple lines.
 
 ### Fixed
 - Fixed a bug in `docopt.cpp` where argument parsing terminated prematurely when encountering an empty string (`""`) as a command-line argument.
