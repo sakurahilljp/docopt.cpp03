@@ -566,6 +566,35 @@ TEST(OptionsTest, UnrecognizedSectionsIgnored) {
     }
 }
 
+TEST(OptionsTest, MultilineUsageAndOptions) {
+    const std::string doc =
+        "Usage:\n"
+        "  program ship move <x> <y>\n"
+        "                 [--speed=<kn>]\n"
+        "\n"
+        "Options:\n"
+        "  -s, --speed=<kn>  Set the speed of the ship.\n"
+        "                    This description is on a new line.\n"
+        "                    [default: 10]\n";
+
+    // Test case 1: Defaults
+    {
+        char const* argv[] = { "ship", "move", "1", "2" };
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 4));
+        EXPECT_EQ("10", res["--speed"].as_string());
+        EXPECT_EQ("1", res["<x>"].as_string());
+        EXPECT_EQ("2", res["<y>"].as_string());
+    }
+
+    // Test case 2: Provided values
+    {
+        char const* argv[] = { "ship", "move", "1", "2", "--speed=25" };
+        Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 5));
+        EXPECT_EQ("25", res["--speed"].as_string());
+    }
+}
+
+
 
 
 
