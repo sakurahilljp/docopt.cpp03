@@ -503,4 +503,19 @@ TEST(ErrorHandlingTest, StackedShortOptionWithUnknown) {
     }
 }
 
+TEST(ValueTest, EmptyStringArgument) {
+    const std::string doc =
+        "Usage: prog --option <FILE>\n"
+        "\n"
+        "Options:\n"
+        "  --option=<FILE>   The file option.\n";
+
+    char const* argv[] = { "--option", "" };
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+    EXPECT_EQ("", res["--option"].as_string());
+    EXPECT_FALSE(res["--option"].is_empty());
+    EXPECT_TRUE(res["--option"].is_string());
+}
+
+
 

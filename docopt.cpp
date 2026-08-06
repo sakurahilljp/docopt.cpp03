@@ -1019,7 +1019,7 @@ static std::vector<PatternPtr> parse_long(Tokens& tokens, std::vector<PatternPtr
             }
         } else {
             if (!has_eq) {
-                if (tokens.current().empty() || tokens.current() == "--") {
+                if (tokens.empty() || tokens.current() == "--") {
                     tokens.raise_error(opt_ptr->long_name + " requires argument");
                 }
                 val_str = tokens.move();
@@ -1077,7 +1077,7 @@ static std::vector<PatternPtr> parse_shorts(Tokens& tokens, std::vector<PatternP
 
             if (opt_ptr->argcount != 0) {
                 if (left.empty()) {
-                    if (tokens.current().empty() || tokens.current() == "--") {
+                    if (tokens.empty() || tokens.current() == "--") {
                         tokens.raise_error(short_opt + " requires argument");
                     }
                     val_str = tokens.move();
@@ -1201,10 +1201,10 @@ static PatternPtr parse_pattern(const std::string& source, std::vector<PatternPt
 
 static std::vector<PatternPtr> parse_argv(Tokens& tokens, std::vector<PatternPtr>& options, bool options_first = false) {
     std::vector<PatternPtr> parsed;
-    while (!tokens.current().empty()) {
+    while (!tokens.empty()) {
         if (tokens.current() == "--") {
             tokens.move();
-            while (!tokens.current().empty()) {
+            while (!tokens.empty()) {
                 parsed.push_back(PatternPtr(new Argument("", Value(tokens.move()))));
             }
             return parsed;
@@ -1215,7 +1215,7 @@ static std::vector<PatternPtr> parse_argv(Tokens& tokens, std::vector<PatternPtr
             std::vector<PatternPtr> short_opts = parse_shorts(tokens, options);
             parsed.insert(parsed.end(), short_opts.begin(), short_opts.end());
         } else if (options_first) {
-            while (!tokens.current().empty()) {
+            while (!tokens.empty()) {
                 parsed.push_back(PatternPtr(new Argument("", Value(tokens.move()))));
             }
             return parsed;
