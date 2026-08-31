@@ -657,3 +657,43 @@ TEST(SharedPtrTest, CascadingDestructionUseAfterFree) {
     ASSERT_TRUE(p);
     EXPECT_EQ(2, p->id);
 }
+
+//------------------------------------------------------------------------------
+// 9. Boundary Checks & Empty Token Handling Tests
+//------------------------------------------------------------------------------
+
+TEST(BoundaryCheckTest, EmptyStringPositionalArgument) {
+    const std::string doc =
+        "Usage:\n"
+        "  program [<arg>]\n";
+
+    char const* argv[] = { "" };
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+    EXPECT_TRUE(res["<arg>"].is_string());
+    EXPECT_EQ("", res["<arg>"].as_string());
+}
+
+TEST(BoundaryCheckTest, EmptyStringWithMultipleArgs) {
+    const std::string doc =
+        "Usage:\n"
+        "  program <first> <second>\n";
+
+    char const* argv[] = { "", "val" };
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+    EXPECT_EQ("", res["<first>"].as_string());
+    EXPECT_EQ("val", res["<second>"].as_string());
+}
+
+TEST(BoundaryCheckTest, EmptyStringOptionValue) {
+    const std::string doc =
+        "Usage:\n"
+        "  program [--name=<val>]\n"
+        "\n"
+        "Options:\n"
+        "  --name=<val>  Set name.\n";
+
+    char const* argv[] = { "--name=" };
+    Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+    EXPECT_TRUE(res["--name"].is_string());
+    EXPECT_EQ("", res["--name"].as_string());
+}
