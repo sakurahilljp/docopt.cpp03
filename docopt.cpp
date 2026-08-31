@@ -1,4 +1,5 @@
 #include "docopt.h"
+#include "docopt_private.h"
 
 #include <iostream>
 #include <sstream>
@@ -9,51 +10,7 @@
 
 namespace docoptcpp03 {
 
-namespace {
-
-template <typename T>
-class shared_ptr {
-private:
-    T* px;
-
-public:
-    shared_ptr() : px(0) {}
-
-    explicit shared_ptr(T* p) : px(p) {
-        if (px) px->add_ref();
-    }
-
-    ~shared_ptr() {
-        if (px) px->release_ref();
-    }
-
-    shared_ptr(const shared_ptr& r) : px(r.px) {
-        if (px) px->add_ref();
-    }
-
-    shared_ptr& operator=(const shared_ptr& r) {
-        if (px != r.px) {
-            if (px) px->release_ref();
-            px = r.px;
-            if (px) px->add_ref();
-        }
-        return *this;
-    }
-
-    T& operator*() const { return *px; }
-    T* operator->() const { return px; }
-    T* get() const { return px; }
-
-    typedef T* shared_ptr::*unspecified_bool_type;
-    operator unspecified_bool_type() const { return px ? &shared_ptr::px : 0; }
-    bool operator!() const { return px == 0; }
-
-    bool operator==(const shared_ptr& r) const { return px == r.px; }
-    bool operator!=(const shared_ptr& r) const { return px != r.px; }
-    bool operator<(const shared_ptr& r) const { return px < r.px; }
-};
-
-} // anonymous namespace
+using detail::shared_ptr;
 
 //------------------------------------------------------------------------------
 // String Helper Utilities
