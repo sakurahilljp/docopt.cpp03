@@ -2,7 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 2026-08-07
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Added internal header `docopt_private.h` encapsulating `docoptcpp03::detail::shared_ptr` and internal AST utilities.
+- Added CMake build option `ENABLE_ASAN` (`-DENABLE_ASAN=ON`) for AddressSanitizer and UndefinedBehaviorSanitizer dynamic analysis.
+- Added GoogleTest unit test suite `SharedPtrTest` in `unit_tests.cpp` to verify smart pointer memory safety:
+  - `SelfAssignment`: Verifies self-assignment (`p = p`).
+  - `NullAssignment`: Verifies assigning NULL pointers and to NULL pointers.
+  - `CascadingDestructionUseAfterFree`: Verifies prevention of Use-After-Free during cascading node destruction (`p = p->child`).
+- Added GoogleTest unit test suite `BoundaryCheckTest` in `unit_tests.cpp` for edge cases:
+  - `EmptyStringPositionalArgument`: Verifies parsing of empty string positional arguments (`""`).
+  - `EmptyStringWithMultipleArgs`: Verifies empty string arguments with surrounding arguments.
+  - `EmptyStringOptionValue`: Verifies empty string option values (`--name=`).
+- Added comprehensive vulnerability investigation reports in `docs/`:
+  - `docs/shared_ptr_uaf_investigation_report.md` (Analysis and resolution of CWE-416 Use-After-Free).
+  - `docs/boundary_check_and_ub_investigation_report.md` (Analysis and resolution of CWE-125 out-of-bounds access and empty token UB).
+
+### Fixed
+- **Memory Safety (CWE-416)**: Resolved a critical Use-After-Free (UAF) vulnerability in `shared_ptr::operator=`.
+  - Stored the target raw pointer locally and incremented the new object's reference count before decrementing the old object's reference count, preventing destruction of aliased child nodes during assignment.
+- **Boundary Safety (CWE-125)**: Fixed an unchecked out-of-bounds vector read in `OneOrMore::match`.
+  - Added an explicit `if (children_.empty())` guard to safely return match failure when `children_` is empty in Release builds (`-DNDEBUG`).
+- **C++03 Undefined Behavior**: Fixed an unchecked empty string index access in `parse_atom`.
+  - Added `!token.empty()` check before evaluating `token[0]` in `std::isupper(token[0])`.
+
+
+## [1.2.2] - 2026-08-07
+
+### Added
+- Added GoogleTest unit test case `MultilineUsageAndOptions` in `unit_tests.cpp` to verify parsing of options and usage patterns spread across multiple lines.
+
+
+## [1.2.1] - 2026-08-07
 
 ### Added
 - Added documentation in `README.md` explaining help message section parsing rules:
@@ -12,15 +47,33 @@ All notable changes to this project will be documented in this file.
   - Concrete examples for both custom section names and unrecognized sections.
 - Added a GoogleTest unit test case `CustomSectionNamesPartialMatch` in `unit_tests.cpp` to verify partial match section parsing.
 - Added a GoogleTest unit test case `UnrecognizedSectionsIgnored` in `unit_tests.cpp` to verify that sections not containing `"usage:"` or `"options:"` are ignored by the parser.
-- Added a GoogleTest unit test case `MultilineUsageAndOptions` in `unit_tests.cpp` to verify parsing of options and usage patterns spread across multiple lines.
+
+
+## [1.2.0] - 2026-08-07
 
 ### Fixed
 - Fixed a bug in `docopt.cpp` where argument parsing terminated prematurely when encountering an empty string (`""`) as a command-line argument.
   - Replaced incorrect `tokens.current().empty()` checks with `tokens.empty()` in `parse_long`, `parse_shorts`, and `parse_argv` to avoid falsely treating an empty string argument as the end of the argument stream.
+
+### Added
 - Added a GoogleTest unit test case `EmptyStringArgument` in `unit_tests.cpp` to verify parsing empty string option values and positional arguments.
+- Added initial `CHANGELOG.md` file documenting project release history.
 
 
-## [1.0.0] - 2026-07-31
+## [1.1.0] - 2026-08-03
+
+### Added
+- Added C++11 `docopt.cpp` compatibility methods to `Value` (CamelCase aliases):
+  - `isBool()`, `isLong()`, `isString()`, `isStringList()`
+  - `asBool()`, `asLong()`, `asDouble()`, `asString()`, `asStringList()`
+- Added `docopt` auto-exiting convenience function overload for CLI applications.
+- Added derived exception classes: `DocoptExitHelp`, `DocoptExitVersion`, and `DocoptArgumentError`.
+
+### Changed
+- Renamed `Docopt` to `docopt_parse` for clearer separation between exception-throwing parser and auto-exiting convenience function.
+
+
+## [1.0.0] - 2026-08-03
 
 ### Added
 - Created complete, strict C++03 port of the official Python `docopt` library (v0.6.2).
@@ -39,3 +92,9 @@ All notable changes to this project will be documented in this file.
 - Reorganized `docopt.h` to declare all public classes at the top and inline implementations at the bottom for maximum interface readability.
 - Aligned naming rules: using PascalCase for classes (`Value`, `Options`) and snake_case for parse functions (`docopt`, `docopt_parse`).
 - Standardized const styling to WEST const (`const Type&`).
+
+
+## [0.6.2] - 2026-08-03
+
+### Added
+- Initial ported codebase based on Python `docopt` v0.6.2.
