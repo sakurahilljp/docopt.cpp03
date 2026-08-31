@@ -10,10 +10,17 @@ set(CMAKE_CXX_STANDARD 98)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+
 if(MSVC)
     add_compile_options(/W4)
 else()
-    add_compile_options(-std=c++03 -Wall -Wextra -Wshadow -Wsign-compare)
+    add_compile_options(-Wall -Wextra -Wshadow -Wsign-compare)
+endif()
+
+if(ENABLE_ASAN)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=address,undefined)
 endif()
 
 add_definitions(-DDOCOPT_USE_CUSTOM_LEXICAL_CAST)
@@ -25,6 +32,9 @@ target_include_directories(docopt PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
+if(NOT MSVC)
+    target_compile_options(docopt PRIVATE -std=c++03)
+endif()
 
 # Installation & Export targets
 include(GNUInstallDirs)
@@ -58,8 +68,11 @@ install(FILES
 # Legacy docopt testcases runner executable
 add_executable(test_docopt test_docopt.cpp)
 target_link_libraries(test_docopt PRIVATE docopt)
+if(NOT MSVC)
+    target_compile_options(test_docopt PRIVATE -std=c++03)
+endif()
 
-# Fetch GoogleTest (release-1.8.1 supports C++03)
+# Fetch GoogleTest
 include(FetchContent)
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -67,7 +80,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     googletest
-    URL https://github.com/google/googletest/archive/refs/tags/release-1.8.1.zip
+    URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
 )
 FetchContent_MakeAvailable(googletest)
 

@@ -594,8 +594,66 @@ TEST(OptionsTest, MultilineUsageAndOptions) {
     }
 }
 
+//------------------------------------------------------------------------------
+// 8. SharedPtr Memory Safety & UAF Tests
+//------------------------------------------------------------------------------
 
+#include "docopt_private.h"
 
+struct TestNode {
+    mutable unsigned int ref_count;
+    docoptcpp03::detail::shared_ptr<TestNode> child;
+    int id;
 
+    TestNode(int i = 0) : ref_count(0), child(), id(i) {}
+    ~TestNode() {
+        id = -999;
+    }
 
+    void add_ref() const { ++ref_count; }
+    void release_ref() const {
+        if (--ref_count == 0) {
+            delete this;
+        }
+    }
+};
 
+TEST(SharedPtrTest, SelfAssignment) {
+    using docoptcpp03::detail::shared_ptr;
+    shared_ptr<TestNode> p(new TestNode(42));
+    p = p;
+    EXPECT_TRUE(p);
+    EXPECT_EQ(42, p->id);
+}
+
+TEST(SharedPtrTest, NullAssignment) {
+    using docoptcpp03::detail::shared_ptr;
+    shared_ptr<TestNode> p1;
+    shared_ptr<TestNode> p2;
+    p1 = p2;
+    EXPECT_FALSE(p1);
+
+    shared_ptr<TestNode> p3(new TestNode(10));
+    p3 = p1;
+    EXPECT_FALSE(p3);
+}
+
+TEST(SharedPtrTest, CascadingDestructionUseAfterFree) {
+    using docoptcpp03::detail::shared_ptr;
+
+    // Node A (id 1) holds the only reference to Node B (id 2).
+    // Pointer p holds the only reference to Node A.
+    shared_ptr<TestNode> p(new TestNode(1));
+    p->child = shared_ptr<TestNode>(new TestNode(2));
+
+    // When assigning p = p->child:
+    // In unpatched operator=:
+    // 1. px->release_ref() deletes Node A.
+    // 2. Node A's destructor deletes Node B.
+    // 3. px = r.px points to deleted Node B.
+    // 4. px->add_ref() accesses freed heap memory -> Heap Use-After-Free!
+    p = p->child;
+
+    ASSERT_TRUE(p);
+    EXPECT_EQ(2, p->id);
+}
