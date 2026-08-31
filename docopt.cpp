@@ -609,6 +609,9 @@ public:
         const std::vector<PatternPtr>& left,
         const std::vector<PatternPtr>& collected = std::vector<PatternPtr>()
     ) {
+        if (children_.empty()) {
+            return std::make_pair(false, std::make_pair(left, collected));
+        }
         assert(children_.size() == 1);
         std::vector<PatternPtr> l = left;
         std::vector<PatternPtr> c = collected;
@@ -1085,7 +1088,7 @@ static std::vector<PatternPtr> parse_atom(Tokens& tokens, std::vector<PatternPtr
         return parse_long(tokens, options);
     } else if (starts_with(token, "-") && token != "-" && token != "--") {
         return parse_shorts(tokens, options);
-    } else if ((starts_with(token, "<") && ends_with(token, ">")) || std::isupper(static_cast<unsigned char>(token[0]))) {
+    } else if ((starts_with(token, "<") && ends_with(token, ">")) || (!token.empty() && std::isupper(static_cast<unsigned char>(token[0])))) {
         result.push_back(PatternPtr(new Argument(tokens.move())));
         return result;
     } else {
