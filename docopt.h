@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <cctype>
 
 #if defined(DOCOPT_USE_CUSTOM_LEXICAL_CAST)
 #include <typeinfo>
@@ -139,8 +140,8 @@ private:
     Kind kind_;
     bool bool_val_;
     long long_val_;
-    std::string str_val_;
-    std::vector<std::string> str_list_val_;
+    mutable std::string str_val_;
+    mutable std::vector<std::string> str_list_val_;
 };
 
 std::ostream& operator<<(std::ostream& os, const Value& val);
@@ -329,10 +330,35 @@ inline DocoptArgumentError::~DocoptArgumentError() throw() {}
 // Value Class Implementation
 //------------------------------------------------------------------------------
 
+namespace detail {
+inline std::string to_lower_str(const std::string& s) {
+    std::string res = s;
+    for (size_t i = 0; i < res.size(); ++i) {
+        res[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(res[i])));
+    }
+    return res;
+}
+
+inline std::string trim_str(const std::string& str, const std::string& drop = " \t\n\r") {
+    size_t first = str.find_first_not_of(drop);
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(drop);
+    return str.substr(first, last - first + 1);
+}
+} // namespace detail
+
 inline Value::Value() : kind_(KIND_EMPTY), bool_val_(false), long_val_(0) {}
-inline Value::Value(bool b) : kind_(KIND_BOOL), bool_val_(b), long_val_(0) {}
-inline Value::Value(long l) : kind_(KIND_LONG), bool_val_(false), long_val_(l) {}
-inline Value::Value(int i) : kind_(KIND_LONG), bool_val_(false), long_val_(i) {}
+inline Value::Value(bool b) : kind_(KIND_BOOL), bool_val_(b), long_val_(0), str_val_(b ? "true" : "false") {}
+inline Value::Value(long l) : kind_(KIND_LONG), bool_val_(false), long_val_(l) {
+    std::ostringstream oss;
+    oss << l;
+    str_val_ = oss.str();
+}
+inline Value::Value(int i) : kind_(KIND_LONG), bool_val_(false), long_val_(i) {
+    std::ostringstream oss;
+    oss << i;
+    str_val_ = oss.str();
+}
 inline Value::Value(const std::string& s) : kind_(KIND_STRING), bool_val_(false), long_val_(0), str_val_(s) {}
 inline Value::Value(const char* s) : kind_(KIND_STRING), bool_val_(false), long_val_(0), str_val_(s ? s : "") {}
 inline Value::Value(const std::vector<std::string>& v) : kind_(KIND_STRING_LIST), bool_val_(false), long_val_(0), str_list_val_(v) {}
@@ -345,35 +371,91 @@ inline bool Value::is_long() const { return kind_ == KIND_LONG; }
 inline bool Value::is_string() const { return kind_ == KIND_STRING; }
 inline bool Value::is_string_list() const { return kind_ == KIND_STRING_LIST; }
 
-inline bool Value::as_bool() const { return bool_val_; }
-inline long Value::as_long() const { return long_val_; }
-inline const std::string& Value::as_string() const { return str_val_; }
-inline const std::vector<std::string>& Value::as_string_list() const { return str_list_val_; }
+inline bool Value::as_bool() const {
+    if (kind_ == KIND_BOOL) {
+        return bool_val_;
+    }
+    if (kind_ == KIND_LONG) {
+        return long_val_ != 0;
+    }
+    if (kind_ == KIND_STRING) {
+        std::string s = detail::to_lower_str(detail::trim_str(str_val_));
+        if (s == "true" || s == "1" || s == "yes" || s == "on") {
+            return true;
+        }
+        if (s == "false" || s == "0" || s == "no" || s == "off" || s.empty()) {
+            return false;
+        }
+        throw std::runtime_error("Value cannot be converted to bool: '" + str_val_ + "'");
+    }
+    throw std::runtime_error("Value cannot be converted to bool.");
+}
+
+inline long Value::as_long() const {
+    if (kind_ == KIND_LONG) {
+        return long_val_;
+    }
+    if (kind_ == KIND_STRING) {
+        try {
+            return boost::lexical_cast<long>(str_val_);
+        } catch (const boost::bad_lexical_cast&) {
+            throw std::runtime_error("Value cannot be converted to long: '" + str_val_ + "'");
+        }
+    }
+    if (kind_ == KIND_BOOL) {
+        return bool_val_ ? 1L : 0L;
+    }
+    throw std::runtime_error("Value cannot be converted to long.");
+}
+
+inline const std::string& Value::as_string() const {
+    if (kind_ == KIND_LONG && str_val_.empty()) {
+        std::ostringstream oss;
+        oss << long_val_;
+        str_val_ = oss.str();
+    } else if (kind_ == KIND_BOOL && str_val_.empty()) {
+        str_val_ = bool_val_ ? "true" : "false";
+    }
+    return str_val_;
+}
+
+inline const std::vector<std::string>& Value::as_string_list() const {
+    if (kind_ == KIND_STRING && str_list_val_.empty()) {
+        str_list_val_.push_back(str_val_);
+    }
+    return str_list_val_;
+}
 
 inline bool Value::as_bool_or(bool default_val) const {
-    if (is_bool()) return as_bool();
+    if (is_bool()) return bool_val_;
     if (is_empty()) return default_val;
-    return is_truthy();
+    try {
+        return as_bool();
+    } catch (...) {
+        return is_truthy();
+    }
 }
 
 inline long Value::as_long_or(long default_val) const {
-    if (is_long()) return as_long();
-    if (is_string()) {
-        try {
-            return boost::lexical_cast<long>(as_string());
-        } catch (const boost::bad_lexical_cast&) {}
+    if (is_empty()) return default_val;
+    try {
+        return as_long();
+    } catch (...) {
+        return default_val;
     }
-    return default_val;
 }
 
 inline std::string Value::as_string_or(const std::string& default_val) const {
-    if (is_string()) return as_string();
-    return default_val;
+    if (is_empty() || is_string_list()) return default_val;
+    try {
+        return as_string();
+    } catch (...) {
+        return default_val;
+    }
 }
 
 inline std::string Value::as_string_or(const char* default_val) const {
-    if (is_string()) return as_string();
-    return default_val ? std::string(default_val) : std::string();
+    return as_string_or(default_val ? std::string(default_val) : std::string());
 }
 
 template <typename T>
@@ -386,6 +468,21 @@ inline T Value::as() const {
         return boost::lexical_cast<T>(as_bool());
     }
     throw boost::bad_lexical_cast();
+}
+
+template <>
+inline bool Value::as<bool>() const {
+    try {
+        return as_bool();
+    } catch (const std::exception&) {
+        throw boost::bad_lexical_cast();
+    }
+}
+
+template <>
+inline std::string Value::as<std::string>() const {
+    if (is_empty()) throw boost::bad_lexical_cast();
+    return as_string();
 }
 
 template <typename T>
@@ -405,10 +502,10 @@ inline std::vector<T> Value::as_list() const {
         const std::vector<std::string>& list = as_string_list();
         res.reserve(list.size());
         for (size_t i = 0; i < list.size(); ++i) {
-            res.push_back(boost::lexical_cast<T>(list[i]));
+            res.push_back(Value(list[i]).as<T>());
         }
     } else if (is_string()) {
-        res.push_back(boost::lexical_cast<T>(as_string()));
+        res.push_back(Value(as_string()).as<T>());
     }
     return res;
 }

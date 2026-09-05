@@ -76,11 +76,11 @@ double Value::as_double() const {
         return static_cast<double>(long_val_);
     }
     if (kind_ == KIND_STRING) {
-#if defined(DOCOPT_USE_CUSTOM_LEXICAL_CAST)
-        return boost::lexical_cast<double>(str_val_);
-#else
-        return boost::lexical_cast<double>(str_val_);
-#endif
+        try {
+            return boost::lexical_cast<double>(str_val_);
+        } catch (const boost::bad_lexical_cast&) {
+            throw std::runtime_error("Value cannot be converted to double: '" + str_val_ + "'");
+        }
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1.0 : 0.0;

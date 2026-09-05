@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Added comprehensive unit test coverage for all `Value` accessors, constructors, and conversion methods in `unit_tests.cpp`:
+  - `KindAndConstructors`: Direct verification of all 5 `kind()` values and all constructors (`int`, `const char*`, etc.).
+  - `FallbackAccessors`: Verification of `as_bool_or`, `as_long_or`, `as_double_or`, and `as_string_or` overloads.
+  - `ValueAsTemplateComprehensive`: Full verification of template casts (`as<int>`, `as<long>`, `as<double>`, `as<bool>`, `as<std::string>`).
+  - `StreamOutputOperator`: Verification of stream operator `operator<<(std::ostream&, const Value&)`.
+- Added investigation report `docs/value_conversion_methods_investigation_report.md`.
+
+### Fixed
+- **Value Accessors & Conversion (Logic Defect)**: Resolved silent conversion failures where CLI arguments stored as strings returned uninitialized default values:
+  - `as_long()` / `asLong()`: Properly converts string arguments (`KIND_STRING`) to numeric `long` values via lexical casting and handles boolean conversions.
+  - `as_bool()` / `asBool()`: Parses boolean strings (`"true"`, `"false"`, `"1"`, `"0"`, `"yes"`, `"no"`, etc.) with whitespace trimming, and non-zero long values.
+  - `as_string()` / `asString()`: Returns string representations for `long` and `bool` variants without dangling references.
+  - `as_string_list()` / `asStringList()`: Wraps single strings in a 1-element list.
+  - `as_long_or()` & `as_string_or()`: Refined fallback methods to properly convert compatible `Value` kinds (`bool` to `long`, `long`/`bool` to `string`) instead of falling back to default values.
+  - `as_list<T>()`: Delegates element conversion to `Value::as<T>()`, allowing boolean lists (`as_list<bool>()`) to parse strings like `"true"` / `"false"` correctly.
+  - `as<bool>()`: Added template specialization ensuring `"true"` / `"false"` strings are correctly parsed instead of throwing `bad_lexical_cast`.
+  - `as_double()`: Standardized exception handling to catch `bad_lexical_cast` and throw `std::runtime_error`.
+
+
 ## [1.2.3] - 2026-08-31
 
 ### Added
