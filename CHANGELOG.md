@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.2.4] - 2026-09-05
+
 ### Added
 - Added comprehensive unit test coverage for all `Value` accessors, constructors, and conversion methods in `unit_tests.cpp`:
   - `KindAndConstructors`: Direct verification of all 5 `kind()` values and all constructors (`int`, `const char*`, etc.).

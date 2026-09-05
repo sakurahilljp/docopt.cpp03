@@ -9,6 +9,7 @@
 | **深刻度** | **中 (Medium)** - コマンドライン引数の数値・真偽値パース結果が静かに無効化される |
 | **作業ブランチ** | `bugfix/fix-value-as-long-conversion` |
 | **修正コミット** | `daf9ee9 fix: implement safe type conversions in Value accessors (as_long, as_bool, as_string, as_string_list)`<br>`a2684d7 fix: refine Value conversion methods (as_long_or, as_string_or, as_list, and as_bool trimming)` |
+| **リリースバージョン** | `v1.2.4` |
 
 ---
 
