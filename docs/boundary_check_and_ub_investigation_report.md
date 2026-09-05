@@ -15,7 +15,7 @@
 ## 2. 不具合の詳細と根本原因 (Root Cause & Mechanics)
 
 ### 2.1 指摘 2: Release ビルド時の `OneOrMore::match` 境界外読み取り
-- **該当箇所**: [`docopt.cpp:608-620`](file:///Users/satoniho/repos/docopt.cpp03/docopt.cpp#L608-L620)
+- **該当箇所**: [`docopt.cpp:608-620`](../docopt.cpp#L608-L620)
 - **原因**:
   `OneOrMore` クラスの `match` 実装において、子ノードの存在確認が `assert(children_.size() == 1)` のみに依存していました。
   最適化リリースビルド（`-DNDEBUG`）ではアサーションが消去されるため、デフォルトコンストラクタ等で `children_` が空のインスタンスに対して `match()` が呼び出された場合、`children_[0]` によるヒープバッファの範囲外読み取り（Heap Buffer Over-read / Segmentation Fault）が発生していました。
@@ -29,7 +29,7 @@
 ---
 
 ### 2.2 指摘 3: `parse_atom` における空文字列インデックス参照 (C++03 UB)
-- **該当箇所**: [`docopt.cpp:1088`](file:///Users/satoniho/repos/docopt.cpp03/docopt.cpp#L1088)
+- **該当箇所**: [`docopt.cpp:1088`](../docopt.cpp#L1088)
 - **原因**:
   構文解析のトークン評価において、`token` が空文字列（`""`）の際に `token.empty()` の事前チェックなしで `std::isupper(static_cast<unsigned char>(token[0]))` を評価していました。
   C++03 規格（§21.3.4）において、空の `std::string` に対する `str[0]` の非 const 参照は未定義動作（Undefined Behavior）です。
