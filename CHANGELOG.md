@@ -18,9 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Value Accessors & Conversion (Logic Defect)**: Resolved silent conversion failures where CLI arguments stored as strings returned uninitialized default values:
   - `as_long()` / `asLong()`: Properly converts string arguments (`KIND_STRING`) to numeric `long` values via lexical casting and handles boolean conversions.
-  - `as_bool()` / `asBool()`: Parses boolean strings (`"true"`, `"false"`, `"1"`, `"0"`, `"yes"`, `"no"`, etc.) and non-zero long values.
+  - `as_bool()` / `asBool()`: Parses boolean strings (`"true"`, `"false"`, `"1"`, `"0"`, `"yes"`, `"no"`, etc.) with whitespace trimming, and non-zero long values.
   - `as_string()` / `asString()`: Returns string representations for `long` and `bool` variants without dangling references.
   - `as_string_list()` / `asStringList()`: Wraps single strings in a 1-element list.
+  - `as_long_or()` & `as_string_or()`: Refined fallback methods to properly convert compatible `Value` kinds (`bool` to `long`, `long`/`bool` to `string`) instead of falling back to default values.
+  - `as_list<T>()`: Delegates element conversion to `Value::as<T>()`, allowing boolean lists (`as_list<bool>()`) to parse strings like `"true"` / `"false"` correctly.
   - `as<bool>()`: Added template specialization ensuring `"true"` / `"false"` strings are correctly parsed instead of throwing `bad_lexical_cast`.
   - `as_double()`: Standardized exception handling to catch `bad_lexical_cast` and throw `std::runtime_error`.
 
