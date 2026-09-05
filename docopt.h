@@ -338,6 +338,13 @@ inline std::string to_lower_str(const std::string& s) {
     }
     return res;
 }
+
+inline std::string trim_str(const std::string& str, const std::string& drop = " \t\n\r") {
+    size_t first = str.find_first_not_of(drop);
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(drop);
+    return str.substr(first, last - first + 1);
+}
 } // namespace detail
 
 inline Value::Value() : kind_(KIND_EMPTY), bool_val_(false), long_val_(0) {}
@@ -372,7 +379,7 @@ inline bool Value::as_bool() const {
         return long_val_ != 0;
     }
     if (kind_ == KIND_STRING) {
-        std::string s = detail::to_lower_str(str_val_);
+        std::string s = detail::to_lower_str(detail::trim_str(str_val_));
         if (s == "true" || s == "1" || s == "yes" || s == "on") {
             return true;
         }
@@ -430,23 +437,25 @@ inline bool Value::as_bool_or(bool default_val) const {
 }
 
 inline long Value::as_long_or(long default_val) const {
-    if (is_long()) return as_long();
-    if (is_string()) {
-        try {
-            return boost::lexical_cast<long>(as_string());
-        } catch (const boost::bad_lexical_cast&) {}
+    if (is_empty()) return default_val;
+    try {
+        return as_long();
+    } catch (...) {
+        return default_val;
     }
-    return default_val;
 }
 
 inline std::string Value::as_string_or(const std::string& default_val) const {
-    if (is_string()) return as_string();
-    return default_val;
+    if (is_empty() || is_string_list()) return default_val;
+    try {
+        return as_string();
+    } catch (...) {
+        return default_val;
+    }
 }
 
 inline std::string Value::as_string_or(const char* default_val) const {
-    if (is_string()) return as_string();
-    return default_val ? std::string(default_val) : std::string();
+    return as_string_or(default_val ? std::string(default_val) : std::string());
 }
 
 template <typename T>
@@ -493,10 +502,10 @@ inline std::vector<T> Value::as_list() const {
         const std::vector<std::string>& list = as_string_list();
         res.reserve(list.size());
         for (size_t i = 0; i < list.size(); ++i) {
-            res.push_back(boost::lexical_cast<T>(list[i]));
+            res.push_back(Value(list[i]).as<T>());
         }
     } else if (is_string()) {
-        res.push_back(boost::lexical_cast<T>(as_string()));
+        res.push_back(Value(as_string()).as<T>());
     }
     return res;
 }

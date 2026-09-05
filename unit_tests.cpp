@@ -141,12 +141,17 @@ TEST(ValueTest, FallbackAccessors) {
     EXPECT_EQ("default", empty_val.as_string_or((const char*)"default"));
     EXPECT_EQ("100", str_val.as_string_or("default"));
     EXPECT_EQ("100", str_val.as_string_or((const char*)"default"));
+    EXPECT_EQ("42", long_val.as_string_or("default"));
+    EXPECT_EQ("true", bool_val.as_string_or("default"));
+    EXPECT_EQ("false", Value(false).as_string_or("default"));
 
     // as_long_or
     EXPECT_EQ(100L, str_val.as_long_or(0L));
     EXPECT_EQ(50L, empty_val.as_long_or(50L));
     EXPECT_EQ(99L, str_invalid.as_long_or(99L));
     EXPECT_EQ(42L, long_val.as_long_or(0L));
+    EXPECT_EQ(1L, bool_val.as_long_or(0L));
+    EXPECT_EQ(0L, Value(false).as_long_or(99L));
 
     // as_double_or
     EXPECT_DOUBLE_EQ(100.0, str_val.as_double_or(0.0));
@@ -191,6 +196,16 @@ TEST(ValueTest, AsListConversion) {
     std::vector<int> single_int_list = v_single.as_list<int>();
     ASSERT_EQ(1u, single_int_list.size());
     EXPECT_EQ(42, single_int_list[0]);
+
+    // Boolean list conversion
+    std::vector<std::string> bool_str_list;
+    bool_str_list.push_back("true");
+    bool_str_list.push_back("false");
+    Value v_bool_list(bool_str_list);
+    std::vector<bool> bool_list = v_bool_list.as_list<bool>();
+    ASSERT_EQ(2u, bool_list.size());
+    EXPECT_TRUE(bool_list[0]);
+    EXPECT_FALSE(bool_list[1]);
 
     // Empty to list conversion
     Value v_empty;
@@ -336,6 +351,15 @@ TEST(ValueTest, BoolConversionFromOtherTypes) {
 
     Value v_long_zero(0L);
     EXPECT_FALSE(v_long_zero.as_bool());
+
+    Value v_true_ws("  true  ");
+    EXPECT_TRUE(v_true_ws.as_bool());
+
+    Value v_false_ws(" \tfalse\n ");
+    EXPECT_FALSE(v_false_ws.as_bool());
+
+    Value v_one_ws(" 1 ");
+    EXPECT_TRUE(v_one_ws.as_bool());
 }
 
 TEST(ValueTest, StringConversionFromOtherTypes) {
