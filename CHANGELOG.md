@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Refactoring (No functional changes)**: Separated interface declarations and implementations by moving all non-template method definitions from `docopt.h` to `docopt.cpp`:
+  - Exception classes: `DocoptLanguageError`, `DocoptExit`, `DocoptExitHelp`, `DocoptExitVersion`, and `DocoptArgumentError`.
+  - `Value` class: Constructors, kind checks, non-template accessors (`as_bool`, `as_long`, `as_double`, `as_string`, `as_string_list`), fallback methods (`as_..._or`), and operators (`is_truthy`, `operator!`, `operator!=`, `operator unspecified_bool_type`).
+  - `Options` class: Constructors, element access (`operator[]`, `at`, `find`, `count`, `has_key`, `contains`), non-template `get` overloads, iterators, capacity, comparisons, and dump helpers.
+  - Internal string helpers: Removed `detail::to_lower_str` and `detail::trim_str` from `docopt.h` and encapsulated string utilities directly in `docopt.cpp`.
+- **Refactoring**: Slimmed down `docopt.h` from 651 lines to 363 lines (44% reduction), retaining only pure interface declarations and essential template implementations while completely preserving external behavior, ABI, and API compatibility.
+
 
 ## [1.2.4] - 2026-09-05
 
