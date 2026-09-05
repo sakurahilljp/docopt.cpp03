@@ -20,6 +20,47 @@ static std::vector<std::string> make_args(char const* const argv[], size_t count
 // 1. Value Variant Type Unit Tests
 //------------------------------------------------------------------------------
 
+TEST(ValueTest, KindAndConstructors) {
+    Value v_empty;
+    EXPECT_EQ(Value::KIND_EMPTY, v_empty.kind());
+    EXPECT_TRUE(v_empty.is_empty());
+
+    Value v_bool(true);
+    EXPECT_EQ(Value::KIND_BOOL, v_bool.kind());
+    EXPECT_TRUE(v_bool.is_bool());
+    EXPECT_TRUE(v_bool.isBool());
+
+    Value v_long(42L);
+    EXPECT_EQ(Value::KIND_LONG, v_long.kind());
+    EXPECT_TRUE(v_long.is_long());
+    EXPECT_TRUE(v_long.isLong());
+
+    Value v_int(100);
+    EXPECT_EQ(Value::KIND_LONG, v_int.kind());
+    EXPECT_TRUE(v_int.is_long());
+    EXPECT_TRUE(v_int.isLong());
+    EXPECT_EQ(100L, v_int.as_long());
+
+    std::string s = "hello";
+    Value v_str(s);
+    EXPECT_EQ(Value::KIND_STRING, v_str.kind());
+    EXPECT_TRUE(v_str.is_string());
+    EXPECT_TRUE(v_str.isString());
+
+    Value v_cstr("world");
+    EXPECT_EQ(Value::KIND_STRING, v_cstr.kind());
+    EXPECT_TRUE(v_cstr.is_string());
+    EXPECT_TRUE(v_cstr.isString());
+
+    std::vector<std::string> list;
+    list.push_back("a");
+    list.push_back("b");
+    Value v_list(list);
+    EXPECT_EQ(Value::KIND_STRING_LIST, v_list.kind());
+    EXPECT_TRUE(v_list.is_string_list());
+    EXPECT_TRUE(v_list.isStringList());
+}
+
 TEST(ValueTest, EmptyValue) {
     Value v;
     EXPECT_TRUE(v.is_empty());
@@ -36,10 +77,12 @@ TEST(ValueTest, BoolValue) {
 
     EXPECT_TRUE(v_true.is_bool());
     EXPECT_TRUE(v_true.as_bool());
+    EXPECT_TRUE(v_true.asBool());
     EXPECT_EQ("true", v_true.to_json());
 
     EXPECT_TRUE(v_false.is_bool());
     EXPECT_FALSE(v_false.as_bool());
+    EXPECT_FALSE(v_false.asBool());
     EXPECT_EQ("false", v_false.to_json());
 }
 
@@ -47,6 +90,7 @@ TEST(ValueTest, LongValue) {
     Value v(42L);
     EXPECT_TRUE(v.is_long());
     EXPECT_EQ(42L, v.as_long());
+    EXPECT_EQ(42L, v.asLong());
     EXPECT_EQ("42", v.to_json());
 }
 
@@ -54,6 +98,7 @@ TEST(ValueTest, StringValue) {
     Value v("hello world");
     EXPECT_TRUE(v.is_string());
     EXPECT_EQ("hello world", v.as_string());
+    EXPECT_EQ("hello world", v.asString());
     EXPECT_EQ("\"hello world\"", v.to_json());
 }
 
@@ -65,9 +110,55 @@ TEST(ValueTest, StringListValue) {
 
     EXPECT_TRUE(v.is_string_list());
     EXPECT_EQ(2u, v.as_string_list().size());
+    EXPECT_EQ(2u, v.asStringList().size());
     EXPECT_EQ("foo", v.as_string_list()[0]);
     EXPECT_EQ("bar", v.as_string_list()[1]);
     EXPECT_EQ("[\"foo\", \"bar\"]", v.to_json());
+}
+
+TEST(ValueTest, DoubleValue) {
+    Value v_long(42L);
+    EXPECT_DOUBLE_EQ(42.0, v_long.as_double());
+    EXPECT_DOUBLE_EQ(42.0, v_long.asDouble());
+
+    Value v_str("3.14159");
+    EXPECT_DOUBLE_EQ(3.14159, v_str.as_double());
+    EXPECT_DOUBLE_EQ(3.14159, v_str.asDouble());
+
+    Value v_empty;
+    EXPECT_DOUBLE_EQ(1.5, v_empty.as_double_or(1.5));
+}
+
+TEST(ValueTest, FallbackAccessors) {
+    Value empty_val;
+    Value str_val("100");
+    Value str_invalid("not_number");
+    Value bool_val(true);
+    Value long_val(42L);
+
+    // as_string_or
+    EXPECT_EQ("default", empty_val.as_string_or("default"));
+    EXPECT_EQ("default", empty_val.as_string_or((const char*)"default"));
+    EXPECT_EQ("100", str_val.as_string_or("default"));
+    EXPECT_EQ("100", str_val.as_string_or((const char*)"default"));
+
+    // as_long_or
+    EXPECT_EQ(100L, str_val.as_long_or(0L));
+    EXPECT_EQ(50L, empty_val.as_long_or(50L));
+    EXPECT_EQ(99L, str_invalid.as_long_or(99L));
+    EXPECT_EQ(42L, long_val.as_long_or(0L));
+
+    // as_double_or
+    EXPECT_DOUBLE_EQ(100.0, str_val.as_double_or(0.0));
+    EXPECT_DOUBLE_EQ(5.5, empty_val.as_double_or(5.5));
+    EXPECT_DOUBLE_EQ(9.9, str_invalid.as_double_or(9.9));
+    EXPECT_DOUBLE_EQ(42.0, long_val.as_double_or(0.0));
+
+    // as_bool_or
+    EXPECT_TRUE(bool_val.as_bool_or(false));
+    EXPECT_TRUE(empty_val.as_bool_or(true));
+    EXPECT_FALSE(empty_val.as_bool_or(false));
+    EXPECT_TRUE(str_val.as_bool_or(false));
 }
 
 TEST(ValueTest, AsListConversion) {
@@ -88,6 +179,23 @@ TEST(ValueTest, AsListConversion) {
     EXPECT_DOUBLE_EQ(10.0, double_list[0]);
     EXPECT_DOUBLE_EQ(20.0, double_list[1]);
     EXPECT_DOUBLE_EQ(30.0, double_list[2]);
+
+    std::vector<std::string> str_list = v.as_list<std::string>();
+    ASSERT_EQ(3u, str_list.size());
+    EXPECT_EQ("10", str_list[0]);
+    EXPECT_EQ("20", str_list[1]);
+    EXPECT_EQ("30", str_list[2]);
+
+    // Single string to list conversion
+    Value v_single("42");
+    std::vector<int> single_int_list = v_single.as_list<int>();
+    ASSERT_EQ(1u, single_int_list.size());
+    EXPECT_EQ(42, single_int_list[0]);
+
+    // Empty to list conversion
+    Value v_empty;
+    std::vector<int> empty_list = v_empty.as_list<int>();
+    EXPECT_TRUE(empty_list.empty());
 }
 
 TEST(ValueTest, SafeBoolConversion) {
@@ -95,6 +203,7 @@ TEST(ValueTest, SafeBoolConversion) {
     Value bool_true(true);
     Value bool_false(false);
     Value long_val(42L);
+    Value long_zero(0L);
     Value str_val("hello");
     Value empty_str("");
 
@@ -109,22 +218,54 @@ TEST(ValueTest, SafeBoolConversion) {
     EXPECT_TRUE(bool_true);
     EXPECT_FALSE(bool_false);
     EXPECT_TRUE(long_val);
+    EXPECT_FALSE(long_zero);
     EXPECT_TRUE(str_val);
     EXPECT_FALSE(empty_str);
     EXPECT_TRUE(vec_val);
     EXPECT_FALSE(empty_vec_val);
 
-    if (str_val) {
-        SUCCEED();
-    } else {
-        ADD_FAILURE() << "str_val should evaluate to true in if condition";
-    }
+    EXPECT_TRUE(empty_val.is_empty());
+    EXPECT_FALSE(empty_val.is_truthy());
+    EXPECT_TRUE(bool_true.is_truthy());
+    EXPECT_FALSE(bool_false.is_truthy());
+    EXPECT_TRUE(long_val.is_truthy());
+    EXPECT_FALSE(long_zero.is_truthy());
+    EXPECT_TRUE(str_val.is_truthy());
+    EXPECT_FALSE(empty_str.is_truthy());
+    EXPECT_TRUE(vec_val.is_truthy());
+    EXPECT_FALSE(empty_vec_val.is_truthy());
 
-    if (!empty_val) {
-        SUCCEED();
-    } else {
-        ADD_FAILURE() << "!empty_val should be true";
-    }
+    EXPECT_TRUE(!empty_val);
+    EXPECT_FALSE(!str_val);
+}
+
+TEST(ValueTest, StreamOutputOperator) {
+    std::stringstream ss;
+    ss << Value();
+    EXPECT_EQ("null", ss.str());
+
+    ss.str("");
+    ss << Value(true);
+    EXPECT_EQ("true", ss.str());
+
+    ss.str("");
+    ss << Value(false);
+    EXPECT_EQ("false", ss.str());
+
+    ss.str("");
+    ss << Value(42L);
+    EXPECT_EQ("42", ss.str());
+
+    ss.str("");
+    ss << Value("hello");
+    EXPECT_EQ("\"hello\"", ss.str());
+
+    std::vector<std::string> list;
+    list.push_back("foo");
+    list.push_back("bar");
+    ss.str("");
+    ss << Value(list);
+    EXPECT_EQ("[\"foo\", \"bar\"]", ss.str());
 }
 
 TEST(ValueTest, EqualityAndComparison) {
@@ -135,45 +276,97 @@ TEST(ValueTest, EqualityAndComparison) {
     EXPECT_EQ(v1, v2);
     EXPECT_NE(v1, v3);
     EXPECT_LT(v1, v3);
+
+    Value s1("abc");
+    Value s2("abc");
+    Value s3("def");
+    EXPECT_EQ(s1, s2);
+    EXPECT_NE(s1, s3);
+    EXPECT_LT(s1, s3);
+
+    Value b1(false);
+    Value b2(true);
+    EXPECT_NE(b1, b2);
+    EXPECT_LT(b1, b2);
+
+    Value empty1;
+    Value empty2;
+    EXPECT_EQ(empty1, empty2);
+    EXPECT_LT(empty1, v1);
 }
 
-//------------------------------------------------------------------------------
-// 2. Exception Handling Tests
-//------------------------------------------------------------------------------
+// Reproduction test cases demonstrating accessor & conversion defects
+TEST(ValueTest, StringToLongConversion) {
+    Value v("12345");
+    EXPECT_TRUE(v.is_string());
+    EXPECT_EQ(12345L, v.as_long());
+    EXPECT_EQ(12345L, v.asLong());
 
-TEST(ValueTest, DoubleValue) {
+    Value v_neg("-99");
+    EXPECT_EQ(-99L, v_neg.as_long());
+
+    Value v_invalid("not_a_number");
+    EXPECT_THROW(v_invalid.as_long(), std::runtime_error);
+
+    Value v_bool(true);
+    EXPECT_EQ(1L, v_bool.as_long());
+}
+
+TEST(ValueTest, ParsedArgumentAsLong) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog --port=<port> <count>\n";
+
+    char const* argv[] = { "--port=8080", "5" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_EQ(8080L, opts["--port"].as_long());
+    EXPECT_EQ(5L, opts["<count>"].as_long());
+}
+
+TEST(ValueTest, BoolConversionFromOtherTypes) {
+    Value v_true_str("true");
+    EXPECT_TRUE(v_true_str.as_bool());
+
+    Value v_false_str("false");
+    EXPECT_FALSE(v_false_str.as_bool());
+
+    Value v_long_one(1L);
+    EXPECT_TRUE(v_long_one.as_bool());
+
+    Value v_long_zero(0L);
+    EXPECT_FALSE(v_long_zero.as_bool());
+}
+
+TEST(ValueTest, StringConversionFromOtherTypes) {
+    Value v_long(42L);
+    EXPECT_EQ("42", v_long.as_string());
+
+    Value v_bool(true);
+    EXPECT_EQ("true", v_bool.as_string());
+}
+
+TEST(ValueTest, StringListConversionFromSingleString) {
+    Value v_single("hello");
+    std::vector<std::string> list = v_single.as_string_list();
+    ASSERT_EQ(1u, list.size());
+    EXPECT_EQ("hello", list[0]);
+}
+
+TEST(ValueTest, DoubleConversionVerification) {
+    Value v_str("3.14");
+    EXPECT_DOUBLE_EQ(3.14, v_str.as_double());
+
     Value v_long(42L);
     EXPECT_DOUBLE_EQ(42.0, v_long.as_double());
 
-    Value v_str("3.14159");
-    EXPECT_DOUBLE_EQ(3.14159, v_str.as_double());
-
-    Value v_empty;
-    EXPECT_DOUBLE_EQ(1.5, v_empty.as_double_or(1.5));
-}
-
-// Tests for docopt for C++11 value CamelCase compatibility methods
-TEST(ValueTest, CamelCaseCompatibilityMethods) {
     Value v_bool(true);
-    EXPECT_TRUE(v_bool.isBool());
-    EXPECT_TRUE(v_bool.asBool());
+    EXPECT_DOUBLE_EQ(1.0, v_bool.as_double());
 
-    Value v_long(100L);
-    EXPECT_TRUE(v_long.isLong());
-    EXPECT_EQ(100L, v_long.asLong());
-    EXPECT_DOUBLE_EQ(100.0, v_long.asDouble());
-
-    Value v_str("test string");
-    EXPECT_TRUE(v_str.isString());
-    EXPECT_EQ("test string", v_str.asString());
-
-    std::vector<std::string> list;
-    list.push_back("a");
-    list.push_back("b");
-    Value v_list(list);
-    EXPECT_TRUE(v_list.isStringList());
-    EXPECT_EQ(2u, v_list.asStringList().size());
+    Value v_invalid("abc");
+    EXPECT_THROW(v_invalid.as_double(), std::runtime_error);
 }
+
 
 TEST(ExceptionTest, DocoptExitException) {
     DocoptExit ex("User exit", "Usage: prog");
@@ -402,6 +595,57 @@ TEST(ValueTest, ValueAsCast) {
 
     EXPECT_EQ(42, str_int.as_or<int>(0));
     EXPECT_EQ(99, empty_val.as_or<int>(99));
+}
+
+TEST(ValueTest, ValueAsTemplateComprehensive) {
+    // 1. as<int> and as<long>
+    Value v_str_int("42");
+    EXPECT_EQ(42, v_str_int.as<int>());
+    EXPECT_EQ(42L, v_str_int.as<long>());
+
+    Value v_long(100L);
+    EXPECT_EQ(100, v_long.as<int>());
+    EXPECT_EQ(100L, v_long.as<long>());
+
+    Value v_bool_true(true);
+    EXPECT_EQ(1, v_bool_true.as<int>());
+    EXPECT_EQ(1L, v_bool_true.as<long>());
+
+    Value v_invalid("abc");
+    EXPECT_THROW(v_invalid.as<int>(), boost::bad_lexical_cast);
+
+    Value v_empty;
+    EXPECT_THROW(v_empty.as<int>(), boost::bad_lexical_cast);
+
+    // 2. as<double>
+    Value v_str_double("3.14");
+    EXPECT_DOUBLE_EQ(3.14, v_str_double.as<double>());
+    EXPECT_DOUBLE_EQ(100.0, v_long.as<double>());
+    EXPECT_DOUBLE_EQ(1.0, v_bool_true.as<double>());
+
+    // 3. as<std::string>
+    EXPECT_EQ("42", v_str_int.as<std::string>());
+    EXPECT_EQ("100", v_long.as<std::string>());
+    EXPECT_EQ("true", v_bool_true.as<std::string>());
+
+    // 4. as<bool>
+    Value v_str_1("1");
+    EXPECT_TRUE(v_str_1.as<bool>());
+
+    Value v_str_0("0");
+    EXPECT_FALSE(v_str_0.as<bool>());
+
+    Value v_str_true("true");
+    EXPECT_TRUE(v_str_true.as<bool>());
+
+    Value v_str_false("false");
+    EXPECT_FALSE(v_str_false.as<bool>());
+
+    Value v_long_non_one(42L);
+    EXPECT_TRUE(v_long_non_one.as<bool>());
+
+    Value v_long_zero(0L);
+    EXPECT_FALSE(v_long_zero.as<bool>());
 }
 
 TEST(OptionsTest, OptionsHelperMethods) {
