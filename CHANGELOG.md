@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.3.0] - 2026-09-05
+
 ### Changed
 - **Refactoring (No functional changes)**: Separated interface declarations and implementations by moving all non-template method definitions from `docopt.h` to `docopt.cpp`:
   - Exception classes: `DocoptLanguageError`, `DocoptExit`, `DocoptExitHelp`, `DocoptExitVersion`, and `DocoptArgumentError`.
