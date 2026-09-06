@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Value Type Query Method Unification**: Unified scalar type-checking methods into generic template method `is<T>()`:
+  - Retained `is_string_list()` and `is_empty()` as non-template member methods.
+  - Removed redundant non-template methods: `is_bool()`, `is_long()`, and `is_string()`.
+  - Added template explicit specializations for `is<bool>()`, `is<long>()`, `is<int>()`, and `is<std::string>()` with dedicated implementations in `docopt.cpp`.
+  - Enforced a C++03-compatible compile-time error (static assertion failure via undefined template specialization) for unspecialized / unsupported types (e.g. `double`, custom types) instead of silently returning `false`.
+  - Updated C++11 compatibility wrappers (`isBool()`, `isLong()`, `isString()`, `isStringList()`) to delegate to `is<T>()` and `is_string_list()`.
+  - Updated all unit tests (`unit_tests.cpp`), test runner (`test_docopt.cpp`), and internal callers across `docopt.cpp` to use the unified `is<T>()` API.
+- **Value Accessor and Conversion Method Unification**: Unified non-template scalar accessors into generic template methods `as<T>()` and fallback methods `as_or<T>()` (and `as_or(const char*)`):
+  - Retained `as_string_list()` as non-template to provide zero-copy reference access to string arguments (`const std::vector<std::string>&`).
+  - Removed redundant non-template methods: `as_bool()`, `as_long()`, `as_double()`, `as_string()`, `as_bool_or()`, `as_long_or()`, `as_double_or()`, and `as_string_or()`.
+  - Added template explicit specializations for `as<bool>()`, `as<long>()`, `as<double>()`, and `as<std::string>()` with dedicated implementations in `docopt.cpp`.
+  - Added automatic fallback method `as_or(default_val)` supporting literal strings (`const char*`) and type-deduced defaults.
+  - Updated C++11 compatibility wrappers (`asBool()`, `asLong()`, `asDouble()`, `asString()`, `asStringList()`) to delegate to the unified template accessors.
+  - Updated all unit tests (`unit_tests.cpp`), test runner (`test_docopt.cpp`), and sample programs (`cmds/`) to use the unified template API.
+
 
 ## [1.3.0] - 2026-09-05
 

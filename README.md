@@ -152,44 +152,42 @@ target_link_libraries(my_target PRIVATE docoptcpp03::docopt)
 
 ## Value Types & Accessors
 
-The result of `docoptcpp03::Docopt` is `docoptcpp03::Options`. `docoptcpp03::Value` represents parsed command-line option values.
+The result of `docoptcpp03::docopt` (or `docoptcpp03::docopt_parse`) is `docoptcpp03::Options`. `docoptcpp03::Value` represents parsed command-line option values.
 
 ### `Value` Accessor & Conversion Method Table
 
-`docoptcpp03::Value` provides a unified, intuitive API for value retrieval, type conversion, and fallback accessors:
+`docoptcpp03::Value` provides a unified, template-based API for value retrieval, type conversion, and fallback accessors:
 
 | Method | Return / Target Type | Description | Example |
 | :--- | :--- | :--- | :--- |
-| `val.as_bool()` | `bool` | Gets boolean value (`true` / `false`) | `opts["--verbose"].as_bool()` |
-| `val.as_long()` | `long` | Gets long integer value | `opts["--count"].as_long()` |
-| `val.as_double()` | `double` | Gets floating-point value (converted from number or string) | `opts["--speed"].as_double()` |
-| `val.as_string()` | `const std::string&` | Gets string value | `opts["<file>"].as_string()` |
-| `val.as_string_list()` | `const std::vector<std::string>&` | Gets vector of string arguments | `opts["<file>"].as_string_list()` |
-| `val.as<T>()` | `T` | Converts single value to type `T` via `boost::lexical_cast<T>` | `opts["--port"].as<int>()` |
+| `val.is_empty()` | `bool` | Checks if value is empty (`Kind::KIND_EMPTY`) | `opts["--opt"].is_empty()` |
+| `val.is<T>()` | `bool` | Checks if value holds type `T` (`bool`, `long`, `int`, `std::string`) | `opts["--flag"].is<bool>()` |
+| `val.is_string_list()` | `bool` | Checks if value is string list | `opts["<args>"].is_string_list()` |
+| `val.as<T>()` | `T` | Converts value to type `T` (`bool`, `long`, `int`, `double`, `std::string`) | `opts["--port"].as<int>()` |
+| `val.as_or(default_val)` / `val.as_or<T>(def)` | `T` | Converts value to type `T` or returns fallback if empty / conversion fails | `opts["--speed"].as_or(0.05)` |
+| `val.as_string_list()` | `const std::vector<std::string>&` | Gets string argument vector directly (zero-copy reference) | `opts["<file>"].as_string_list()` |
 | `val.as_list<T>()` | `std::vector<T>` | Converts string list to `std::vector<T>` via `boost::lexical_cast<T>` | `opts["<nums>"].as_list<int>()` |
-| `val.as_bool_or(default_val)` | `bool` | Gets boolean value or returns fallback if empty | `opts["--flag"].as_bool_or(false)` |
-| `val.as_long_or(default_val)` | `long` | Gets long value or returns fallback if empty | `opts["--count"].as_long_or(1L)` |
-| `val.as_double_or(default_val)` | `double` | Gets double value or returns fallback if empty | `opts["--speed"].as_double_or(1.0)` |
-| `val.as_string_or(default_val)` | `std::string` | Gets string value or returns fallback if empty | `opts["--output"].as_string_or("stdout")` |
-| `val.as_or<T>(default_val)` | `T` | Converts single value to type `T` or returns fallback if empty | `opts["--speed"].as_or<double>(0.05)` |
 | `val.is_truthy()` | `bool` | Returns `true` if flag is `true` or non-empty value is set | `opts["--verbose"].is_truthy()` |
 | `if (val)` / Safe Bool Cast | `bool` | Contextual Safe Bool conversion to test if value is set / truthy | `if (opts["--verbose"])` |
 | `if (!val)` / Logical NOT | `bool` | Logical negation operator to test if value is empty / falsy | `if (!opts["--output"])` |
+
+> [!NOTE]
+> `val.is<T>()` strictly supports the following scalar types: `bool`, `long`, `int`, and `std::string`. Attempting to instantiate `val.is<T>()` with an unsupported type (such as `double`, `float`, or custom types) produces a **compile-time error** (static assertion failure) to catch type mismatches at build time instead of returning `false`. For string lists, use `val.is_string_list()`; for empty checks, use `val.is_empty()`.
 
 ### `docopt for C++11` `value` Compatibility Methods (CamelCase)
 
 To make migration from the `docopt for C++11` library seamless, `docoptcpp03::Value` provides CamelCase compatibility wrappers matching [`docopt_value.h`](https://github.com/docopt/docopt.cpp/blob/master/docopt_value.h):
 
-| CamelCase Method | Equivalent `snake_case` Method | Description |
+| CamelCase Method | Equivalent Unified Method | Description |
 | :--- | :--- | :--- |
-| `val.isBool()` | `val.is_bool()` | Check if value is boolean |
-| `val.isLong()` | `val.is_long()` | Check if value is long integer |
-| `val.isString()` | `val.is_string()` | Check if value is string |
+| `val.isBool()` | `val.is<bool>()` | Check if value is boolean |
+| `val.isLong()` | `val.is<long>()` | Check if value is long integer |
+| `val.isString()` | `val.is<std::string>()` | Check if value is string |
 | `val.isStringList()` | `val.is_string_list()` | Check if value is string list |
-| `val.asBool()` | `val.as_bool()` | Get boolean value |
-| `val.asLong()` | `val.as_long()` | Get long integer value |
-| `val.asDouble()` | `val.as_double()` | Get double floating-point value |
-| `val.asString()` | `val.as_string()` | Get string reference |
+| `val.asBool()` | `val.as<bool>()` | Get boolean value |
+| `val.asLong()` | `val.as<long>()` | Get long integer value |
+| `val.asDouble()` | `val.as<double>()` | Get double floating-point value |
+| `val.asString()` | `val.as<std::string>()` | Get string value |
 | `val.asStringList()` | `val.as_string_list()` | Get vector of strings reference |
 
 ### Options Helper Methods

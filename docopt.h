@@ -18,7 +18,7 @@ namespace docoptcpp03 {
 
 //==============================================================================
 // PART 1: PUBLIC INTERFACE & CLASS DECLARATIONS
-// (利用者が最初に見る公開 API の宣言一覧)
+// (Public API declarations for library consumers)
 //==============================================================================
 
 //------------------------------------------------------------------------------
@@ -85,43 +85,37 @@ public:
     Kind kind() const;
 
     bool is_empty() const;
-    bool is_bool() const;
-    bool is_long() const;
-    bool is_string() const;
     bool is_string_list() const;
 
-    bool as_bool() const;
-    long as_long() const;
-    double as_double() const;
-    const std::string& as_string() const;
-    const std::vector<std::string>& as_string_list() const;
+    // Type query based on Value::Kind (unsupported types cause compile-time error)
+    template <typename T>
+    bool is() const;
 
-    // docopt for C++11 value compatibility methods (CamelCase)
-    bool isBool() const { return is_bool(); }
-    bool isLong() const { return is_long(); }
-    bool isString() const { return is_string(); }
-    bool isStringList() const { return is_string_list(); }
-
-    bool asBool() const { return as_bool(); }
-    long asLong() const { return as_long(); }
-    double asDouble() const { return as_double(); }
-    const std::string& asString() const { return as_string(); }
-    const std::vector<std::string>& asStringList() const { return as_string_list(); }
-
-    bool as_bool_or(bool default_val) const;
-    long as_long_or(long default_val) const;
-    double as_double_or(double default_val) const;
-    std::string as_string_or(const std::string& default_val) const;
-    std::string as_string_or(const char* default_val) const;
-
+    // Type accessors & conversions
     template <typename T>
     T as() const;
 
     template <typename T>
     T as_or(const T& default_val) const;
 
+    std::string as_or(const char* default_val) const;
+
+    const std::vector<std::string>& as_string_list() const;
+
     template <typename T>
     std::vector<T> as_list() const;
+
+    // docopt for C++11 value compatibility methods (CamelCase)
+    bool isBool() const;
+    bool isLong() const;
+    bool isString() const;
+    bool isStringList() const { return is_string_list(); }
+
+    bool asBool() const;
+    long asLong() const;
+    double asDouble() const;
+    std::string asString() const;
+    const std::vector<std::string>& asStringList() const { return as_string_list(); }
 
     bool is_truthy() const;
 
@@ -248,7 +242,7 @@ Options docopt(
 
 //==============================================================================
 // PART 2: TEMPLATE IMPLEMENTATIONS
-// (ヘッダー定義が必須なテンプレート実装)
+// (Header-only template definitions)
 //==============================================================================
 
 #if defined(DOCOPT_USE_CUSTOM_LEXICAL_CAST)
@@ -291,35 +285,73 @@ inline Target lexical_cast(const std::string& arg) {
 namespace docoptcpp03 {
 
 //------------------------------------------------------------------------------
-// Value Template Implementations
-//------------------------------------------------------------------------------
+namespace detail {
+template <bool> struct docopt_is_supported_type;
+template <> struct docopt_is_supported_type<true> {};
+
+template <typename T>
+struct is_supported_value_type {
+    enum { value = 0 };
+};
+template <> struct is_supported_value_type<bool> { enum { value = 1 }; };
+template <> struct is_supported_value_type<long> { enum { value = 1 }; };
+template <> struct is_supported_value_type<int> { enum { value = 1 }; };
+template <> struct is_supported_value_type<std::string> { enum { value = 1 }; };
+} // namespace detail
+
+// Value::is<T>() primary template definition
+// Checks the held type based on Value::Kind (unsupported types trigger compile-time error)
+template <typename T>
+inline bool Value::is() const {
+    detail::docopt_is_supported_type<detail::is_supported_value_type<T>::value> ERROR_unsupported_type_for_Value_is;
+    (void)ERROR_unsupported_type_for_Value_is;
+    return false;
+}
+
+template <>
+bool Value::is<bool>() const;
+
+template <>
+bool Value::is<long>() const;
+
+template <>
+bool Value::is<int>() const;
+
+template <>
+bool Value::is<std::string>() const;
+
+inline bool Value::isBool() const { return is<bool>(); }
+inline bool Value::isLong() const { return is<long>(); }
+inline bool Value::isString() const { return is<std::string>(); }
 
 template <typename T>
 inline T Value::as() const {
-    if (is_string()) {
-        return boost::lexical_cast<T>(as_string());
-    } else if (is_long()) {
-        return boost::lexical_cast<T>(as_long());
-    } else if (is_bool()) {
-        return boost::lexical_cast<T>(as_bool());
+    if (kind_ == KIND_STRING) {
+        return boost::lexical_cast<T>(str_val_);
+    } else if (kind_ == KIND_LONG) {
+        return boost::lexical_cast<T>(long_val_);
+    } else if (kind_ == KIND_BOOL) {
+        return boost::lexical_cast<T>(bool_val_ ? 1 : 0);
     }
     throw boost::bad_lexical_cast();
 }
 
 template <>
-inline bool Value::as<bool>() const {
-    try {
-        return as_bool();
-    } catch (const std::exception&) {
-        throw boost::bad_lexical_cast();
-    }
-}
+bool Value::as<bool>() const;
 
 template <>
-inline std::string Value::as<std::string>() const {
-    if (is_empty()) throw boost::bad_lexical_cast();
-    return as_string();
-}
+long Value::as<long>() const;
+
+template <>
+double Value::as<double>() const;
+
+template <>
+std::string Value::as<std::string>() const;
+
+inline bool Value::asBool() const { return as<bool>(); }
+inline long Value::asLong() const { return as<long>(); }
+inline double Value::asDouble() const { return as<double>(); }
+inline std::string Value::asString() const { return as<std::string>(); }
 
 template <typename T>
 inline T Value::as_or(const T& default_val) const {
@@ -331,6 +363,10 @@ inline T Value::as_or(const T& default_val) const {
     }
 }
 
+inline std::string Value::as_or(const char* default_val) const {
+    return as_or<std::string>(default_val ? std::string(default_val) : std::string());
+}
+
 template <typename T>
 inline std::vector<T> Value::as_list() const {
     std::vector<T> res;
@@ -340,8 +376,8 @@ inline std::vector<T> Value::as_list() const {
         for (size_t i = 0; i < list.size(); ++i) {
             res.push_back(Value(list[i]).as<T>());
         }
-    } else if (is_string()) {
-        res.push_back(Value(as_string()).as<T>());
+    } else if (kind_ == KIND_STRING) {
+        res.push_back(Value(str_val_).as<T>());
     }
     return res;
 }

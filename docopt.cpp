@@ -127,12 +127,31 @@ Value::Value(const std::vector<std::string>& v) : kind_(KIND_STRING_LIST), bool_
 Value::Kind Value::kind() const { return kind_; }
 
 bool Value::is_empty() const { return kind_ == KIND_EMPTY; }
-bool Value::is_bool() const { return kind_ == KIND_BOOL; }
-bool Value::is_long() const { return kind_ == KIND_LONG; }
-bool Value::is_string() const { return kind_ == KIND_STRING; }
 bool Value::is_string_list() const { return kind_ == KIND_STRING_LIST; }
 
-bool Value::as_bool() const {
+// Value::is<T>() の明示的特殊化定義
+// 内部で保持している型タグ (Value::Kind) に基づいて、保持型の一致判定を行う
+template <>
+bool Value::is<bool>() const { return kind_ == KIND_BOOL; }
+
+template <>
+bool Value::is<long>() const { return kind_ == KIND_LONG; }
+
+template <>
+bool Value::is<int>() const { return kind_ == KIND_LONG; }
+
+template <>
+bool Value::is<std::string>() const { return kind_ == KIND_STRING; }
+
+const std::vector<std::string>& Value::as_string_list() const {
+    if (kind_ == KIND_STRING && str_list_val_.empty()) {
+        str_list_val_.push_back(str_val_);
+    }
+    return str_list_val_;
+}
+
+template <>
+bool Value::as<bool>() const {
     if (kind_ == KIND_BOOL) {
         return bool_val_;
     }
@@ -147,102 +166,53 @@ bool Value::as_bool() const {
         if (s == "false" || s == "0" || s == "no" || s == "off" || s.empty()) {
             return false;
         }
-        throw std::runtime_error("Value cannot be converted to bool: '" + str_val_ + "'");
+        throw boost::bad_lexical_cast();
     }
-    throw std::runtime_error("Value cannot be converted to bool.");
+    throw boost::bad_lexical_cast();
 }
 
-long Value::as_long() const {
+template <>
+long Value::as<long>() const {
     if (kind_ == KIND_LONG) {
         return long_val_;
     }
     if (kind_ == KIND_STRING) {
-        try {
-            return boost::lexical_cast<long>(str_val_);
-        } catch (const boost::bad_lexical_cast&) {
-            throw std::runtime_error("Value cannot be converted to long: '" + str_val_ + "'");
-        }
+        return boost::lexical_cast<long>(str_val_);
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1L : 0L;
     }
-    throw std::runtime_error("Value cannot be converted to long.");
+    throw boost::bad_lexical_cast();
 }
 
-double Value::as_double() const {
+template <>
+double Value::as<double>() const {
     if (kind_ == KIND_LONG) {
         return static_cast<double>(long_val_);
     }
     if (kind_ == KIND_STRING) {
-        try {
-            return boost::lexical_cast<double>(str_val_);
-        } catch (const boost::bad_lexical_cast&) {
-            throw std::runtime_error("Value cannot be converted to double: '" + str_val_ + "'");
-        }
+        return boost::lexical_cast<double>(str_val_);
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1.0 : 0.0;
     }
-    throw std::runtime_error("Value cannot be converted to double.");
+    throw boost::bad_lexical_cast();
 }
 
-const std::string& Value::as_string() const {
-    if (kind_ == KIND_LONG && str_val_.empty()) {
+template <>
+std::string Value::as<std::string>() const {
+    if (kind_ == KIND_STRING) {
+        return str_val_;
+    }
+    if (kind_ == KIND_LONG) {
         std::ostringstream oss;
         oss << long_val_;
-        str_val_ = oss.str();
-    } else if (kind_ == KIND_BOOL && str_val_.empty()) {
-        str_val_ = bool_val_ ? "true" : "false";
+        return oss.str();
     }
-    return str_val_;
-}
-
-const std::vector<std::string>& Value::as_string_list() const {
-    if (kind_ == KIND_STRING && str_list_val_.empty()) {
-        str_list_val_.push_back(str_val_);
+    if (kind_ == KIND_BOOL) {
+        return bool_val_ ? "true" : "false";
     }
-    return str_list_val_;
-}
-
-bool Value::as_bool_or(bool default_val) const {
-    if (is_bool()) return bool_val_;
-    if (is_empty()) return default_val;
-    try {
-        return as_bool();
-    } catch (...) {
-        return is_truthy();
-    }
-}
-
-long Value::as_long_or(long default_val) const {
-    if (is_empty()) return default_val;
-    try {
-        return as_long();
-    } catch (...) {
-        return default_val;
-    }
-}
-
-double Value::as_double_or(double default_val) const {
-    if (is_empty()) return default_val;
-    try {
-        return as_double();
-    } catch (...) {
-        return default_val;
-    }
-}
-
-std::string Value::as_string_or(const std::string& default_val) const {
-    if (is_empty() || is_string_list()) return default_val;
-    try {
-        return as_string();
-    } catch (...) {
-        return default_val;
-    }
-}
-
-std::string Value::as_string_or(const char* default_val) const {
-    return as_string_or(default_val ? std::string(default_val) : std::string());
+    throw boost::bad_lexical_cast();
 }
 
 bool Value::is_truthy() const {
@@ -458,14 +428,14 @@ public:
 
         std::vector<PatternPtr> new_collected = collected;
 
-        if (value_.is_long() || value_.is_string_list()) {
+        if (value_.is<long>() || value_.is_string_list()) {
             Value increment;
-            if (value_.is_long()) {
+            if (value_.is<long>()) {
                 increment = Value(1L);
             } else {
-                if (match_ptr->get_value().is_string()) {
+                if (match_ptr->get_value().is<std::string>()) {
                     std::vector<std::string> v;
-                    v.push_back(match_ptr->get_value().as_string());
+                    v.push_back(match_ptr->get_value().as<std::string>());
                     increment = Value(v);
                 } else if (match_ptr->get_value().is_string_list()) {
                     increment = match_ptr->get_value();
@@ -481,8 +451,8 @@ public:
             } else {
                 PatternPtr target = same_name[0];
                 Value cur = target->get_value();
-                if (cur.is_long() && increment.is_long()) {
-                    target->set_value(Value(cur.as_long() + increment.as_long()));
+                if (cur.is<long>() && increment.is<long>()) {
+                    target->set_value(Value(cur.as<long>() + increment.as<long>()));
                 } else if (cur.is_string_list() && increment.is_string_list()) {
                     std::vector<std::string> v = cur.as_string_list();
                     const std::vector<std::string>& inc_v = increment.as_string_list();
@@ -563,7 +533,7 @@ public:
     virtual std::pair<int, PatternPtr> single_match(const std::vector<PatternPtr>& left) {
         for (size_t i = 0; i < left.size(); ++i) {
             if (left[i]->kind() == KIND_ARGUMENT) {
-                if (left[i]->get_value().is_string() && left[i]->get_value().as_string() == name_) {
+                if (left[i]->get_value().is<std::string>() && left[i]->get_value().as<std::string>() == name_) {
                     return std::make_pair(static_cast<int>(i), PatternPtr(new Command(name_, Value(true))));
                 } else {
                     break;
@@ -918,8 +888,8 @@ PatternPtr Pattern::fix_repeating_arguments() {
                     if (e->get_value().is_empty()) {
                         e->set_value(Value(std::vector<std::string>()));
                     } else if (!e->get_value().is_string_list()) {
-                        if (e->get_value().is_string()) {
-                            e->set_value(Value(split_words(e->get_value().as_string())));
+                        if (e->get_value().is<std::string>()) {
+                            e->set_value(Value(split_words(e->get_value().as<std::string>())));
                         }
                     }
                 }
@@ -1483,7 +1453,7 @@ static void extras(bool help, const std::string& version, const std::vector<Patt
     if (help) {
         for (size_t i = 0; i < argv_options.size(); ++i) {
             std::string n = argv_options[i]->name();
-            if ((n == "-h" || n == "--help") && argv_options[i]->get_value().is_bool() && argv_options[i]->get_value().as_bool()) {
+            if ((n == "-h" || n == "--help") && argv_options[i]->get_value().is<bool>() && argv_options[i]->get_value().as<bool>()) {
                 std::string help_doc = trim(doc, "\n");
                 throw DocoptExitHelp(help_doc);
             }
@@ -1492,7 +1462,7 @@ static void extras(bool help, const std::string& version, const std::vector<Patt
     if (!version.empty()) {
         for (size_t i = 0; i < argv_options.size(); ++i) {
             std::string n = argv_options[i]->name();
-            if (n == "--version" && argv_options[i]->get_value().is_bool() && argv_options[i]->get_value().as_bool()) {
+            if (n == "--version" && argv_options[i]->get_value().is<bool>() && argv_options[i]->get_value().as<bool>()) {
                 throw DocoptExitVersion(version);
             }
         }
@@ -1681,7 +1651,7 @@ bool Options::contains(const std::string& key) const { return has_key(key); }
 std::string Options::get(const std::string& key, const std::string& default_val) const {
     const_iterator it = map_.find(key);
     if (it != map_.end()) {
-        return it->second.as_string_or(default_val);
+        return it->second.as_or<std::string>(default_val);
     }
     return default_val;
 }
