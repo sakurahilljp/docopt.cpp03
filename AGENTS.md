@@ -4,11 +4,11 @@
 
 Whenever modifying code, creating branches, committing, or merging changes in this project, you must adhere to the following workflow steps:
 
-1. **Work in a Dedicated Branch**: Always create and switch to a dedicated working branch before making any changes. Use standard prefixes:
+1. **Work in a Dedicated Branch**: Always create and switch to a dedicated working branch before modifying project code or tests. Use standard prefixes:
    - `bugfix/<name>` or `fix/<name>` for bug fixes and security patches.
    - `feature/<name>` for new features.
    - `test/<name>` for test additions.
-   - Never work directly on `main` unless explicitly granted an exception by the user.
+   - **Exceptions**: Release operations (version bumps, tagging) and non-code modifications (documentation, reports, rules) may be performed and committed directly on `main`, provided explicit user approval is obtained beforehand. Never modify functional code or tests directly on `main` unless explicitly granted an exception by the user.
 2. **Reproduce & Prove Bugs First (Bugfix Workflow)**: When fixing bugs or vulnerabilities:
    - First, formulate a plan that includes a Phase 1 reproduction/demonstration step.
    - Add reproduction test cases and run dynamic analysis (e.g., AddressSanitizer/ASan, UBSan) on the *unpatched* code to prove the issue exists.
