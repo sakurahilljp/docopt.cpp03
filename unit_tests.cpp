@@ -394,6 +394,155 @@ TEST(ValueTest, DoubleConversionVerification) {
     EXPECT_THROW(v_invalid.as<double>(), boost::bad_lexical_cast);
 }
 
+// 1. is<T>() および C++11 is*() の全型網羅・相互排他テスト
+TEST(ValueTest, IsTypeQueryExhaustive) {
+    Value v_empty;
+    Value v_bool(true);
+    Value v_long(42L);
+    Value v_int(100);
+    Value v_str("hello");
+    std::vector<std::string> list;
+    list.push_back("a");
+    Value v_list(list);
+
+    // v_bool
+    EXPECT_TRUE(v_bool.is<bool>());
+    EXPECT_FALSE(v_bool.is<long>());
+    EXPECT_FALSE(v_bool.is<int>());
+    EXPECT_FALSE(v_bool.is<std::string>());
+    EXPECT_FALSE(v_bool.is_string_list());
+    EXPECT_FALSE(v_bool.is_empty());
+    EXPECT_TRUE(v_bool.isBool());
+    EXPECT_FALSE(v_bool.isLong());
+    EXPECT_FALSE(v_bool.isString());
+    EXPECT_FALSE(v_bool.isStringList());
+
+    // v_long
+    EXPECT_FALSE(v_long.is<bool>());
+    EXPECT_TRUE(v_long.is<long>());
+    EXPECT_TRUE(v_long.is<int>());
+    EXPECT_FALSE(v_long.is<std::string>());
+    EXPECT_FALSE(v_long.is_string_list());
+    EXPECT_FALSE(v_long.is_empty());
+    EXPECT_FALSE(v_long.isBool());
+    EXPECT_TRUE(v_long.isLong());
+    EXPECT_FALSE(v_long.isString());
+    EXPECT_FALSE(v_long.isStringList());
+
+    // v_int
+    EXPECT_FALSE(v_int.is<bool>());
+    EXPECT_TRUE(v_int.is<long>());
+    EXPECT_TRUE(v_int.is<int>());
+    EXPECT_FALSE(v_int.is<std::string>());
+    EXPECT_FALSE(v_int.is_string_list());
+    EXPECT_FALSE(v_int.is_empty());
+
+    // v_str
+    EXPECT_FALSE(v_str.is<bool>());
+    EXPECT_FALSE(v_str.is<long>());
+    EXPECT_FALSE(v_str.is<int>());
+    EXPECT_TRUE(v_str.is<std::string>());
+    EXPECT_FALSE(v_str.is_string_list());
+    EXPECT_FALSE(v_str.is_empty());
+    EXPECT_FALSE(v_str.isBool());
+    EXPECT_FALSE(v_str.isLong());
+    EXPECT_TRUE(v_str.isString());
+    EXPECT_FALSE(v_str.isStringList());
+
+    // v_list
+    EXPECT_FALSE(v_list.is<bool>());
+    EXPECT_FALSE(v_list.is<long>());
+    EXPECT_FALSE(v_list.is<int>());
+    EXPECT_FALSE(v_list.is<std::string>());
+    EXPECT_TRUE(v_list.is_string_list());
+    EXPECT_FALSE(v_list.is_empty());
+    EXPECT_FALSE(v_list.isBool());
+    EXPECT_FALSE(v_list.isLong());
+    EXPECT_FALSE(v_list.isString());
+    EXPECT_TRUE(v_list.isStringList());
+
+    // v_empty
+    EXPECT_FALSE(v_empty.is<bool>());
+    EXPECT_FALSE(v_empty.is<long>());
+    EXPECT_FALSE(v_empty.is<int>());
+    EXPECT_FALSE(v_empty.is<std::string>());
+    EXPECT_FALSE(v_empty.is_string_list());
+    EXPECT_TRUE(v_empty.is_empty());
+    EXPECT_FALSE(v_empty.isBool());
+    EXPECT_FALSE(v_empty.isLong());
+    EXPECT_FALSE(v_empty.isString());
+    EXPECT_FALSE(v_empty.isStringList());
+}
+
+// 2. as<T>() の例外パス網羅テスト
+TEST(ValueTest, AsUnsupportedConversionsThrow) {
+    Value empty_val;
+    std::vector<std::string> l;
+    l.push_back("x");
+    Value list_val(l);
+
+    EXPECT_THROW(empty_val.as<bool>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<long>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<double>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<std::string>(), boost::bad_lexical_cast);
+
+    EXPECT_THROW(list_val.as<bool>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<long>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<double>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<std::string>(), boost::bad_lexical_cast);
+}
+
+// 3. as<bool>() 文字列トークン解釈の網羅テスト
+TEST(ValueTest, BoolStringVariantsExhaustive) {
+    EXPECT_TRUE(Value("yes").as<bool>());
+    EXPECT_TRUE(Value("on").as<bool>());
+    EXPECT_TRUE(Value("YES").as<bool>());
+    EXPECT_TRUE(Value("ON").as<bool>());
+    EXPECT_TRUE(Value("True").as<bool>());
+
+    EXPECT_FALSE(Value("no").as<bool>());
+    EXPECT_FALSE(Value("off").as<bool>());
+    EXPECT_FALSE(Value("NO").as<bool>());
+    EXPECT_FALSE(Value("OFF").as<bool>());
+    EXPECT_FALSE(Value("False").as<bool>());
+    EXPECT_FALSE(Value("").as<bool>());
+
+    EXPECT_THROW(Value("maybe").as<bool>(), boost::bad_lexical_cast);
+}
+
+// 4. as_list<T>() 要素変換失敗例外テスト
+TEST(ValueTest, AsListElementConversionError) {
+    std::vector<std::string> invalid_list;
+    invalid_list.push_back("10");
+    invalid_list.push_back("not_int");
+    Value v(invalid_list);
+    EXPECT_THROW(v.as_list<int>(), boost::bad_lexical_cast);
+}
+
+// 5. 文字列リストの比較およびキャッシュテスト
+TEST(ValueTest, StringListComparisonAndCache) {
+    std::vector<std::string> l1;
+    l1.push_back("a");
+    std::vector<std::string> l2;
+    l2.push_back("b");
+    Value vl1(l1);
+    Value vl2(l2);
+
+    EXPECT_EQ(vl1, vl1);
+    EXPECT_NE(vl1, vl2);
+    EXPECT_LT(vl1, vl2);
+    EXPECT_FALSE(Value() < Value());
+
+    Value v_str("cached");
+    const std::vector<std::string>& ref1 = v_str.as_string_list();
+    const std::vector<std::string>& ref2 = v_str.as_string_list();
+    EXPECT_EQ(&ref1, &ref2);
+    EXPECT_EQ(1u, ref1.size());
+    EXPECT_EQ("cached", ref1[0]);
+}
+
 
 TEST(ExceptionTest, DocoptExitException) {
     DocoptExit ex("User exit", "Usage: prog");
@@ -690,6 +839,17 @@ TEST(OptionsTest, OptionsHelperMethods) {
     EXPECT_EQ("stdout", opts.get("--output", "stdout"));
     EXPECT_EQ(25, opts.get<int>("--speed", 10));
     EXPECT_EQ(8080, opts.get<int>("--port", 8080));
+}
+
+TEST(OptionsTest, GetTemplateVariants) {
+    const std::string doc = "Usage: prog [--speed=<kn>] [--count=<n>] [--verbose]";
+    char const* argv[] = { "--speed=2.5", "--count=42", "--verbose" };
+    const Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 3));
+
+    EXPECT_EQ(42L, opts.get<long>("--count", 0L));
+    EXPECT_DOUBLE_EQ(2.5, opts.get<double>("--speed", 0.0));
+    EXPECT_TRUE(opts.get<bool>("--verbose", false));
+    EXPECT_FALSE(opts.get<bool>("--missing", false));
 }
 
 TEST(OptionsTest, OptionsDump) {

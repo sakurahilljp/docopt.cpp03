@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Unit Test Coverage for Unified Value API**: Added exhaustive unit test suites in `unit_tests.cpp`:
+  - `IsTypeQueryExhaustive`: Complete orthogonal type-query testing across all `Value` variants and `is*()` compatibility wrappers.
+  - `AsUnsupportedConversionsThrow`: Complete exception verification (`boost::bad_lexical_cast`) for unconvertible variants (empty, list, invalid strings).
+  - `BoolStringVariantsExhaustive`: Edge cases and case-insensitivity verification for boolean conversions (`yes`, `no`, `on`, `off`, whitespace, uppercase).
+  - `AsListElementConversionError`: Exception verification on invalid list element conversion.
+  - `StringListComparisonAndCache`: Verification of list comparisons and lazy string-list caching.
+  - `GetTemplateVariants`: Multi-type retrieval test for `Options::get<T>()`.
+
 ### Changed
 - **Value Type Query Method Unification**: Unified scalar type-checking methods into generic template method `is<T>()`:
   - Retained `is_string_list()` and `is_empty()` as non-template member methods.
