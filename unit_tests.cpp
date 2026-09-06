@@ -1310,3 +1310,113 @@ TEST(OptionsFirstTest, CStyleArgvOverload) {
     EXPECT_EQ("-v", opts["<args>"].as_string_list()[0]);
 }
 
+//------------------------------------------------------------------------------
+// 11. Options Container API Tests
+//------------------------------------------------------------------------------
+
+TEST(OptionsContainerTest, SizeAndEmptyAndClear) {
+    Options opts;
+    EXPECT_TRUE(opts.empty());
+    EXPECT_EQ(0u, opts.size());
+
+    char const* argv[] = { "hello" };
+    opts = docoptcpp03::docopt_parse("Usage: prog <msg>\n", make_args(argv, 1));
+    EXPECT_FALSE(opts.empty());
+    EXPECT_EQ(1u, opts.size());
+
+    opts.clear();
+    EXPECT_TRUE(opts.empty());
+    EXPECT_EQ(0u, opts.size());
+}
+
+TEST(OptionsContainerTest, EqualityAndInequalityOperators) {
+    char const* argv1[] = { "-v" };
+    Options a = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv1, 1));
+    Options b = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv1, 1));
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a != b);
+
+    char const* argv2[] = {};
+    Options c = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv2, 0));
+    EXPECT_FALSE(a == c);
+    EXPECT_TRUE(a != c);
+
+    Options empty_opts;
+    EXPECT_FALSE(a == empty_opts);
+    EXPECT_TRUE(a != empty_opts);
+}
+
+TEST(OptionsContainerTest, IteratorsConstAndNonConst) {
+    char const* argv[] = { "foo", "--bar" };
+    const std::string doc =
+        "Usage: prog <name> [--bar]\n"
+        "Options:\n"
+        "  --bar  Bar flag.\n";
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    // const_iterator
+    const Options& const_opts = opts;
+    size_t count = 0;
+    for (Options::const_iterator it = const_opts.begin(); it != const_opts.end(); ++it) {
+        EXPECT_FALSE(it->first.empty());
+        ++count;
+    }
+    EXPECT_EQ(opts.size(), count);
+
+    // non-const iterator: modify value
+    for (Options::iterator it = opts.begin(); it != opts.end(); ++it) {
+        if (it->first == "<name>") {
+            it->second = Value("modified");
+        }
+    }
+    EXPECT_EQ("modified", opts["<name>"].as<std::string>());
+}
+
+TEST(OptionsContainerTest, FindAndCountAndKeyQueries) {
+    char const* argv[] = { "-a" };
+    const std::string doc =
+        "Usage: prog [-a]\n"
+        "Options:\n"
+        "  -a  Alpha.\n";
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+
+    // find (const)
+    const Options& const_opts = opts;
+    Options::const_iterator cit = const_opts.find("-a");
+    ASSERT_NE(const_opts.end(), cit);
+    EXPECT_TRUE(cit->second.as<bool>());
+    EXPECT_EQ(const_opts.end(), const_opts.find("-nonexistent"));
+
+    // find (non-const) & modify
+    Options::iterator it = opts.find("-a");
+    ASSERT_NE(opts.end(), it);
+    it->second = Value(false);
+    EXPECT_FALSE(opts["-a"].as<bool>());
+
+    // count
+    EXPECT_EQ(1u, opts.count("-a"));
+    EXPECT_EQ(0u, opts.count("-nonexistent"));
+
+    // has_key & contains
+    EXPECT_TRUE(opts.has_key("-a"));
+    EXPECT_TRUE(opts.contains("-a"));
+    EXPECT_FALSE(opts.has_key("-nonexistent"));
+    EXPECT_FALSE(opts.contains("-nonexistent"));
+}
+
+TEST(OptionsContainerTest, MapAccessorAndConstructor) {
+    std::map<std::string, Value> raw_map;
+    raw_map["key1"] = Value("value1");
+    raw_map["key2"] = Value(42L);
+
+    Options opts(raw_map);
+    EXPECT_EQ(2u, opts.size());
+    EXPECT_EQ("value1", opts["key1"].as<std::string>());
+    EXPECT_EQ(42L, opts["key2"].as<long>());
+
+    const std::map<std::string, Value>& retrieved_map = opts.map();
+    EXPECT_EQ(2u, retrieved_map.size());
+    EXPECT_EQ("value1", retrieved_map.find("key1")->second.as<std::string>());
+}
+
+

@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Git-style subcommand dispatching with subcommand-specific options/flags passed as positional arguments.
   - Parsing options when no positional argument is provided.
   - Both `std::vector<std::string>` and C-style `argc, argv` overloads.
+- **Unit Test Coverage for `Options` Container API**: Added `OptionsContainerTest` test suite in `unit_tests.cpp` covering:
+  - Container capacity and state manipulation (`size()`, `empty()`, `clear()`).
+  - Equality and inequality operators (`operator==`, `operator!=`).
+  - Iteration and element access via `const_iterator` and non-const `iterator`.
+  - Lookup and querying methods (`find()`, `count()`, `has_key()`, `contains()`).
+  - Underlying `std::map` accessor (`map()`) and `std::map` constructor.
+
 
 
 ## [1.4.0] - 2026-09-06
