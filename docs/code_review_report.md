@@ -25,7 +25,7 @@
 | **メモリ安全性** | ✅ 修正済み | 過去の UAF (CWE-416)、境界外読取 (CWE-125)、空文字列 UB (CWE-758) は全て解消 |
 | **API 設計** | ✅ 良好 | テンプレート・CamelCase 互換の二重 API、フォールバック付きアクセサ、例外階層が充実 |
 | **テストカバレッジ** | ⚠️ 概ね良好（欠落あり） | 66 件の単体テスト + 957 行の Python 準拠機能テスト。ただし重要な未テスト領域あり |
-| **ドキュメント** | ⚠️ 複数箇所で不一致 | README と実装の齟齬、CHANGELOG のフォーマット不備あり |
+| **ドキュメント** | ✅ 修正済み | README と実装の齟齬解消、スレッドセーフティ追記、CHANGELOG リファレンスリンク・分類修正完了 |
 
 ---
 
@@ -99,44 +99,30 @@ flowchart TD
 
 ---
 
-### 🟡 Medium: ドキュメントと例外型の不一致
+### ℹ️ Informational: 過去レポートと現在の例外型の差異
 
 **箇所**: [docopt.cpp:L154-234](../docopt.cpp#L154-L234) `Value::as<T>()` の各特殊化
 
-**問題**: [value_conversion_methods_investigation_report.md](./value_conversion_methods_investigation_report.md) では型変換失敗時に `std::runtime_error` をスローすると記載されていますが、実装は `boost::bad_lexical_cast` をスローします。呼び出し側が `std::runtime_error` で catch すると漏れます。
+**内容**: 過去の調査レポート [value_conversion_methods_investigation_report.md](./value_conversion_methods_investigation_report.md)（v1.2.4 以前）では型変換失敗時に `std::runtime_error` をスローすると記録されていましたが、現在の実装およびテストは `boost::bad_lexical_cast`（`std::bad_cast` 派生）を一貫して送出します。過去レポートは当時の経緯記録として維持し、現行仕様は README および単体テストにて管理されます。
 
-**推奨対応**: ドキュメントを実装に合わせて `boost::bad_lexical_cast`（`std::bad_cast` 派生）に修正する
 
 ---
 
-### 🟡 Medium: スレッドセーフティの非保証（文書化不足）
+### 🟡 ~~Medium: スレッドセーフティの非保証（文書化不足）~~（✅ 修正完了）
 
 **箇所**:
 - [docopt.cpp:L147-152](../docopt.cpp#L147-L152) `Value::as_string_list()` — `const` メソッドが `mutable` メンバを変更（遅延キャッシュ）
 - [docopt.h:L160](../docopt.h#L160) `Options::operator[] const` — C++03 では関数内 `static` 変数の初期化がスレッドセーフでない
 
-**問題**: 同一の `Value` / `Options` オブジェクトを複数スレッドから同期なしに読み出すことは安全ではありませんが、この制約がドキュメントに記載されていません。
-
-**推奨対応**: README に「シングルスレッド用途を前提」と明記する
+**対応**: [README.md](../README.md) に「Thread Safety」セクションを新設し、「シングルスレッド用途を前提」と明記完了。
 
 ---
 
-### 🟢 Low: `docopt()` ラッパーの `std::exit()` によるスタック巻き戻し省略
+### 🟢 ~~Low: `docopt()` ラッパーの `std::exit()` によるスタック巻き戻し省略~~（✅ 修正完了）
 
 **箇所**: [docopt.cpp:L1591-1609](../docopt.cpp#L1591-L1609) `docopt()`
 
-```cpp
-} catch (const DocoptExit& e) {
-    if (!e.usage.empty()) {
-        std::cout << e.usage << std::endl;
-    }
-    std::exit(e.status);  // スタック巻き戻しなし
-}
-```
-
-**問題**: `std::exit()` はローカルオブジェクトのデストラクタを呼ばずにプロセスを終了します。リソースリーク（ファイルハンドル等）の可能性あり。
-
-**推奨対応**: README に `docopt_parse()` の直接使用を推奨する注意書きを追加
+**対応**: [README.md](../README.md) に `docopt()` と `docopt_parse()` の比較解説を追加し、RAII リソース解放を行う場合は `docopt_parse()` の使用が推奨される旨の注意書きを明記完了。
 
 ---
 
@@ -254,12 +240,12 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 
 ### README の不一致
 
-| # | 箇所 | 問題 | 深刻度 |
-|:-:|:---|:---|:---:|
-| 1 | README L55 | `docopt()` のエラー出力先が「`std::cerr`」と記載されているが、実際は `DocoptExit`（引数エラー含む）は全て **`std::cout`** に出力 | 中 |
-| 2 | README L169 | `as_list<T>()` が `boost::lexical_cast` で直接変換と記載されているが、実際は `Value::as<T>()` に委譲 | 小 |
-| 3 | README L111-151 | `cd build` 後に `./build/unit_tests` を実行する手順（パス不整合） | 小 |
-| 4 | README 全体 | `options_first` パラメータの説明が一切なし | 中 |
+| # | 箇所 | 問題 | 深刻度 | 状態 |
+|:-:|:---|:---|:---:|:---:|
+| 1 | README L55 | `docopt()` のエラー出力先が「`std::cerr`」と記載されているが、実際は `DocoptExit`（引数エラー含む）は全て **`std::cout`** に出力 | 中 | ✅ 解決済 |
+| 2 | README L169 | `as_list<T>()` が `boost::lexical_cast` で直接変換と記載されているが、実際は `Value::as<T>()` に委譲 | 小 | ✅ 解決済 |
+| 3 | README L111-151 | `cd build` 後に `./build/unit_tests` を実行する手順（パス不整合） | 小 | ✅ 解決済 |
+| 4 | README 全体 | `options_first` パラメータの説明が一切なし | 中 | ✅ 解決済 |
 
 ### サンプルコードの問題
 
@@ -272,19 +258,19 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 
 ### CHANGELOG のフォーマット問題
 
-| # | 問題 | Keep a Changelog 準拠 |
-|:-:|:---|:---:|
-| 1 | 末尾の比較用リファレンスリンク定義が完全に欠落 | ❌ 違反 |
-| 2 | v1.4.0 の API 削除が `### Changed` に混在（`### Removed` にすべき） | ❌ 違反 |
-| 3 | v1.2.3 のセキュリティ修正が `### Fixed` に記載（`### Security` 推奨） | ⚠️ 推奨違反 |
+| # | 問題 | Keep a Changelog 準拠 | 状態 |
+|:-:|:---|:---:|:---:|
+| 1 | 末尾の比較用リファレンスリンク定義が完全に欠落 | ❌ 違反 | ✅ 解決済 |
+| 2 | v1.4.0 の API 削除が `### Changed` に混在（`### Removed` にすべき） | ❌ 違反 | ✅ 解決済 |
+| 3 | v1.2.3 のセキュリティ修正が `### Fixed` に記載（`### Security` 推奨） | ⚠️ 推奨違反 | ✅ 解決済 |
 
 ---
 
 ## 5. 推奨アクション一覧（優先度順）
 
-### コード修正
-1. **[Medium]** ドキュメント内の例外型記述を `boost::bad_lexical_cast` に統一
-2. **[Low]** README にスレッドセーフティの注意事項を追記
+### コード・ドキュメント修正
+1. **[Info]** 過去レポートとの例外型差異を現行仕様（`boost::bad_lexical_cast`）として確認・整理済み（過去レポートは履歴維持）
+2. **[Low]** ~~README にスレッドセーフティの注意事項を追記~~（✅ 完了）
 3. **[Low]** `Pattern::children()` — `const` 参照化 + `mutable_children()` 分離（次回リファクタ時）
 
 ### テスト追加
@@ -294,9 +280,9 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 7. **[Medium]** `--`（オプション終端）の明示的ユニットテスト追加
 
 ### ドキュメント修正
-8. **[Medium]** README: `docopt()` の出力先ストリーム記述を修正
-9. **[Medium]** README: `options_first` パラメータの解説を追加
-10. **[Medium]** CHANGELOG: リファレンスリンク追加、セクション分類修正
+8. **[Medium]** ~~README: `docopt()` の出力先ストリーム記述を修正~~（✅ 完了）
+9. **[Medium]** ~~README: `options_first` パラメータの解説を追加~~（✅ 完了）
+10. **[Medium]** ~~CHANGELOG: リファレンスリンク追加、セクション分類修正~~（✅ 完了）
 11. **[Low]** サンプルコード: `naval_fate` の `shoot` 実装追加、`calculator` の例外処理追加
 
 ---
