@@ -24,7 +24,7 @@
 | **アーキテクチャ・設計** | ✅ 良好 | 正規表現に依存しない AST ベースのパーサ。C++03 制約下で合理的な設計 |
 | **メモリ安全性** | ✅ 修正済み | 過去の UAF (CWE-416)、境界外読取 (CWE-125)、空文字列 UB (CWE-758) は全て解消 |
 | **API 設計** | ✅ 良好 | テンプレート・CamelCase 互換の二重 API、フォールバック付きアクセサ、例外階層が充実 |
-| **テストカバレッジ** | ⚠️ 概ね良好（欠落あり） | 60 件の単体テスト + 957 行の Python 準拠機能テスト。ただし重要な未テスト領域あり |
+| **テストカバレッジ** | ⚠️ 概ね良好（欠落あり） | 66 件の単体テスト + 957 行の Python 準拠機能テスト。ただし重要な未テスト領域あり |
 | **ドキュメント** | ⚠️ 複数箇所で不一致 | README と実装の齟齬、CHANGELOG のフォーマット不備あり |
 
 ---
@@ -157,7 +157,7 @@ flowchart TD
 
 | テストファイル | フレームワーク | テスト数 | 対象 |
 |:---|:---|:---:|:---|
-| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest | **60 件** | Value 型、Options、例外、パース、メモリ安全性 |
+| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest | **66 件** | Value 型、Options、例外、パース、メモリ安全性、options_first |
 | [test_docopt.cpp](../test_docopt.cpp) | カスタムハーネス | **957 行分** | Python 参照テストケースとの互換性検証 |
 
 ### ✅ 十分にテストされている領域
@@ -181,6 +181,7 @@ flowchart TD
 | オプションパース | `OptionParsingTest`, `FlagCountingTest`, `CommandTest`, `DefaultsTest` | ✅ ショート/ロング/スタッキング/カウント |
 | メモリ安全性 | `SharedPtrTest`, `BoundaryCheckTest` | ✅ 自己代入、連鎖破棄 UAF、境界チェック |
 | Python 互換性 | `test_docopt.cpp` | ✅ `testcases.docopt` 全ケースの自動比較 |
+| `options_first` 動作 | `OptionsFirstTest` | ✅ 先行オプション、位置引数以降の停止、デフォルト比較、Git風ディスパッチ等 6 ケース |
 | コンパイル時エラー (`is<double>()`) | — | ✅ 静的にしかテスト不可（設計通り） |
 
 ### ⚠️ テストが不足している重要な領域
@@ -206,19 +207,9 @@ TEST(DocoptWrapperDeathTest, InvalidArgTriggersExit1) {
 }
 ```
 
-#### 2. `options_first = true` の動作
-`options_first` パラメータのテストが一切ありません（`grep` で 0 件確認済み）。
+#### 2. `options_first = true` の動作（✅ 対応完了）
+[unit_tests.cpp](../unit_tests.cpp) に `OptionsFirstTest` スイート（計 6 件）を追加し、先行オプションのパース、位置引数以降の解析停止、デフォルト（`false`）との差異、Git 風サブコマンド引数ディスパッチ、位置引数なしケース、C スタイル `(int argc, char* argv[])` オーバーロードを網羅的に検証済みです。
 
-```cpp
-// 追加すべきテスト例
-TEST(OptionsFirstTest, StopsParsingAfterFirstPositional) {
-    const char* doc = "Usage: prog [options] <cmd> [<args>...]\n\nOptions:\n  -v  Verbose\n";
-    const char* argv[] = {"cmd", "-v"};
-    Options opts = docopt_parse(doc, make_args(argv, 2), true, "", true);
-    // options_first=true なので "-v" はオプションではなく位置引数として解釈される
-    EXPECT_FALSE(opts["-v"].as<bool>());
-}
-```
 
 #### 3. `Options` コンテナ API
 `begin()` / `end()` イテレータ、`size()`、`empty()`、`clear()`、`operator==` / `operator!=` の専用テストがありません。
@@ -297,7 +288,7 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 3. **[Low]** `Pattern::children()` — `const` 参照化 + `mutable_children()` 分離（次回リファクタ時）
 
 ### テスト追加
-4. **[High]** `options_first = true` のテストを追加
+4. **[High]** ~~`options_first = true` のテストを追加~~（✅ 完了: `OptionsFirstTest` 6 件追加）
 5. **[High]** `docopt()` ラッパーのデステスト（`EXPECT_EXIT`）を追加
 6. **[Medium]** `Options` コンテナ API（`size`, `empty`, `clear`, イテレータ, `operator==`）のテスト追加
 7. **[Medium]** `--`（オプション終端）の明示的ユニットテスト追加
