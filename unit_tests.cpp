@@ -1487,5 +1487,80 @@ TEST(DocoptDeathTest, CStyleArgvTriggersExit) {
     );
 }
 
+//------------------------------------------------------------------------------
+// 13. End-of-Options ("--") Unit Tests
+//------------------------------------------------------------------------------
+
+TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "--", "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(1u, args.size());
+    EXPECT_EQ("-v", args[0]);
+}
+
+TEST(EndOfOptionsTest, OptionsBeforeDoubleDashAreParsed) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n"
+        "  -a  All flag.\n";
+
+    char const* argv[] = { "-v", "--", "-a", "file.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 4));
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_FALSE(opts["-a"].as<bool>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(2u, args.size());
+    EXPECT_EQ("-a", args[0]);
+    EXPECT_EQ("file.txt", args[1]);
+}
+
+TEST(EndOfOptionsTest, DoubleDashWithExplicitDashInUsage) {
+    const std::string doc =
+        "Usage: prog [--] <file>\n";
+
+    char const* argv[] = { "--", "-f" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_EQ("-f", opts["<file>"].as<std::string>());
+}
+
+TEST(EndOfOptionsTest, DoubleDashAtEndOfArguments) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "-v", "--" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_TRUE(opts["<args>"].as_string_list().empty());
+}
+
+TEST(EndOfOptionsTest, CStyleArgvDoubleDash) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "--", "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, 2, argv);
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    ASSERT_EQ(1u, opts["<args>"].as_string_list().size());
+    EXPECT_EQ("-v", opts["<args>"].as_string_list()[0]);
+}
+
+
 
 

@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Process termination with code `1` on invalid/unrecognized arguments.
   - Process termination with code `1` on usage string syntax errors (`DocoptLanguageError`) with error message output to `std::cerr`.
   - Verification of C-style array `(int argc, char const* const argv[])` overload.
+- **Unit Test Coverage for End-of-Options (`--`)**: Added `EndOfOptionsTest` test suite in `unit_tests.cpp` covering:
+  - Disabling option parsing after `--` and interpreting subsequent flags as positional arguments.
+  - Parsing options specified before `--`.
+  - Handling of explicit `[--]` defined in docstring usage patterns.
+  - Handling of trailing `--` at the end of the argument stream.
+  - Verification of C-style array `(int argc, char const* const argv[])` overload.
+
 
 
 
