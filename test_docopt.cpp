@@ -133,9 +133,9 @@ struct JsonVal {
 
     bool equals_docopt_value(const docoptcpp03::Value& dv) const {
         if (type == J_NULL) return dv.is_empty();
-        if (type == J_BOOL) return dv.is_bool() && dv.as_bool() == bool_val;
-        if (type == J_NUMBER) return dv.is_long() && dv.as_long() == num_val;
-        if (type == J_STRING) return dv.is_string() && dv.as_string() == str_val;
+        if (type == J_BOOL) return dv.is<bool>() && dv.as<bool>() == bool_val;
+        if (type == J_NUMBER) return dv.is<long>() && dv.as<long>() == num_val;
+        if (type == J_STRING) return dv.is<std::string>() && dv.as<std::string>() == str_val;
         if (type == J_ARRAY) {
             if (!dv.is_string_list()) return false;
             const std::vector<std::string>& dv_list = dv.as_string_list();

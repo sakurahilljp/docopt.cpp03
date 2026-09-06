@@ -27,29 +27,30 @@ TEST(ValueTest, KindAndConstructors) {
 
     Value v_bool(true);
     EXPECT_EQ(Value::KIND_BOOL, v_bool.kind());
-    EXPECT_TRUE(v_bool.is_bool());
+    EXPECT_TRUE(v_bool.is<bool>());
     EXPECT_TRUE(v_bool.isBool());
 
     Value v_long(42L);
     EXPECT_EQ(Value::KIND_LONG, v_long.kind());
-    EXPECT_TRUE(v_long.is_long());
+    EXPECT_TRUE(v_long.is<long>());
     EXPECT_TRUE(v_long.isLong());
 
     Value v_int(100);
     EXPECT_EQ(Value::KIND_LONG, v_int.kind());
-    EXPECT_TRUE(v_int.is_long());
+    EXPECT_TRUE(v_int.is<long>());
+    EXPECT_TRUE(v_int.is<int>());
     EXPECT_TRUE(v_int.isLong());
-    EXPECT_EQ(100L, v_int.as_long());
+    EXPECT_EQ(100L, v_int.as<long>());
 
     std::string s = "hello";
     Value v_str(s);
     EXPECT_EQ(Value::KIND_STRING, v_str.kind());
-    EXPECT_TRUE(v_str.is_string());
+    EXPECT_TRUE(v_str.is<std::string>());
     EXPECT_TRUE(v_str.isString());
 
     Value v_cstr("world");
     EXPECT_EQ(Value::KIND_STRING, v_cstr.kind());
-    EXPECT_TRUE(v_cstr.is_string());
+    EXPECT_TRUE(v_cstr.is<std::string>());
     EXPECT_TRUE(v_cstr.isString());
 
     std::vector<std::string> list;
@@ -64,9 +65,9 @@ TEST(ValueTest, KindAndConstructors) {
 TEST(ValueTest, EmptyValue) {
     Value v;
     EXPECT_TRUE(v.is_empty());
-    EXPECT_FALSE(v.is_bool());
-    EXPECT_FALSE(v.is_long());
-    EXPECT_FALSE(v.is_string());
+    EXPECT_FALSE(v.is<bool>());
+    EXPECT_FALSE(v.is<long>());
+    EXPECT_FALSE(v.is<std::string>());
     EXPECT_FALSE(v.is_string_list());
     EXPECT_EQ("null", v.to_json());
 }
@@ -75,29 +76,29 @@ TEST(ValueTest, BoolValue) {
     Value v_true(true);
     Value v_false(false);
 
-    EXPECT_TRUE(v_true.is_bool());
-    EXPECT_TRUE(v_true.as_bool());
+    EXPECT_TRUE(v_true.is<bool>());
+    EXPECT_TRUE(v_true.as<bool>());
     EXPECT_TRUE(v_true.asBool());
     EXPECT_EQ("true", v_true.to_json());
 
-    EXPECT_TRUE(v_false.is_bool());
-    EXPECT_FALSE(v_false.as_bool());
+    EXPECT_TRUE(v_false.is<bool>());
+    EXPECT_FALSE(v_false.as<bool>());
     EXPECT_FALSE(v_false.asBool());
     EXPECT_EQ("false", v_false.to_json());
 }
 
 TEST(ValueTest, LongValue) {
     Value v(42L);
-    EXPECT_TRUE(v.is_long());
-    EXPECT_EQ(42L, v.as_long());
+    EXPECT_TRUE(v.is<long>());
+    EXPECT_EQ(42L, v.as<long>());
     EXPECT_EQ(42L, v.asLong());
     EXPECT_EQ("42", v.to_json());
 }
 
 TEST(ValueTest, StringValue) {
     Value v("hello world");
-    EXPECT_TRUE(v.is_string());
-    EXPECT_EQ("hello world", v.as_string());
+    EXPECT_TRUE(v.is<std::string>());
+    EXPECT_EQ("hello world", v.as<std::string>());
     EXPECT_EQ("hello world", v.asString());
     EXPECT_EQ("\"hello world\"", v.to_json());
 }
@@ -118,15 +119,15 @@ TEST(ValueTest, StringListValue) {
 
 TEST(ValueTest, DoubleValue) {
     Value v_long(42L);
-    EXPECT_DOUBLE_EQ(42.0, v_long.as_double());
+    EXPECT_DOUBLE_EQ(42.0, v_long.as<double>());
     EXPECT_DOUBLE_EQ(42.0, v_long.asDouble());
 
     Value v_str("3.14159");
-    EXPECT_DOUBLE_EQ(3.14159, v_str.as_double());
+    EXPECT_DOUBLE_EQ(3.14159, v_str.as<double>());
     EXPECT_DOUBLE_EQ(3.14159, v_str.asDouble());
 
     Value v_empty;
-    EXPECT_DOUBLE_EQ(1.5, v_empty.as_double_or(1.5));
+    EXPECT_DOUBLE_EQ(1.5, v_empty.as_or(1.5));
 }
 
 TEST(ValueTest, FallbackAccessors) {
@@ -136,34 +137,36 @@ TEST(ValueTest, FallbackAccessors) {
     Value bool_val(true);
     Value long_val(42L);
 
-    // as_string_or
-    EXPECT_EQ("default", empty_val.as_string_or("default"));
-    EXPECT_EQ("default", empty_val.as_string_or((const char*)"default"));
-    EXPECT_EQ("100", str_val.as_string_or("default"));
-    EXPECT_EQ("100", str_val.as_string_or((const char*)"default"));
-    EXPECT_EQ("42", long_val.as_string_or("default"));
-    EXPECT_EQ("true", bool_val.as_string_or("default"));
-    EXPECT_EQ("false", Value(false).as_string_or("default"));
+    // as_or with strings
+    EXPECT_EQ("default", empty_val.as_or("default"));
+    EXPECT_EQ("default", empty_val.as_or<std::string>("default"));
+    EXPECT_EQ("100", str_val.as_or("default"));
+    EXPECT_EQ("100", str_val.as_or<std::string>("default"));
+    EXPECT_EQ("42", long_val.as_or<std::string>("default"));
+    EXPECT_EQ("true", bool_val.as_or<std::string>("default"));
+    EXPECT_EQ("false", Value(false).as_or<std::string>("default"));
 
-    // as_long_or
-    EXPECT_EQ(100L, str_val.as_long_or(0L));
-    EXPECT_EQ(50L, empty_val.as_long_or(50L));
-    EXPECT_EQ(99L, str_invalid.as_long_or(99L));
-    EXPECT_EQ(42L, long_val.as_long_or(0L));
-    EXPECT_EQ(1L, bool_val.as_long_or(0L));
-    EXPECT_EQ(0L, Value(false).as_long_or(99L));
+    // as_or with longs
+    EXPECT_EQ(100L, str_val.as_or(0L));
+    EXPECT_EQ(50L, empty_val.as_or(50L));
+    EXPECT_EQ(99L, str_invalid.as_or(99L));
+    EXPECT_EQ(42L, long_val.as_or(0L));
+    EXPECT_EQ(1L, bool_val.as_or(0L));
+    EXPECT_EQ(0L, Value(false).as_or(99L));
 
-    // as_double_or
-    EXPECT_DOUBLE_EQ(100.0, str_val.as_double_or(0.0));
-    EXPECT_DOUBLE_EQ(5.5, empty_val.as_double_or(5.5));
-    EXPECT_DOUBLE_EQ(9.9, str_invalid.as_double_or(9.9));
-    EXPECT_DOUBLE_EQ(42.0, long_val.as_double_or(0.0));
+    // as_or with doubles
+    EXPECT_DOUBLE_EQ(100.0, str_val.as_or(0.0));
+    EXPECT_DOUBLE_EQ(5.5, empty_val.as_or(5.5));
+    EXPECT_DOUBLE_EQ(9.9, str_invalid.as_or(9.9));
+    EXPECT_DOUBLE_EQ(42.0, long_val.as_or(0.0));
 
-    // as_bool_or
-    EXPECT_TRUE(bool_val.as_bool_or(false));
-    EXPECT_TRUE(empty_val.as_bool_or(true));
-    EXPECT_FALSE(empty_val.as_bool_or(false));
-    EXPECT_TRUE(str_val.as_bool_or(false));
+    // as_or with bools
+    EXPECT_TRUE(bool_val.as_or(false));
+    EXPECT_TRUE(empty_val.as_or(true));
+    EXPECT_FALSE(empty_val.as_or(false));
+    EXPECT_TRUE(Value("true").as_or(false));
+    EXPECT_FALSE(str_val.as_or(false));
+    EXPECT_TRUE(str_val.as_or(true));
 }
 
 TEST(ValueTest, AsListConversion) {
@@ -313,18 +316,18 @@ TEST(ValueTest, EqualityAndComparison) {
 // Reproduction test cases demonstrating accessor & conversion defects
 TEST(ValueTest, StringToLongConversion) {
     Value v("12345");
-    EXPECT_TRUE(v.is_string());
-    EXPECT_EQ(12345L, v.as_long());
+    EXPECT_TRUE(v.is<std::string>());
+    EXPECT_EQ(12345L, v.as<long>());
     EXPECT_EQ(12345L, v.asLong());
 
     Value v_neg("-99");
-    EXPECT_EQ(-99L, v_neg.as_long());
+    EXPECT_EQ(-99L, v_neg.as<long>());
 
     Value v_invalid("not_a_number");
-    EXPECT_THROW(v_invalid.as_long(), std::runtime_error);
+    EXPECT_THROW(v_invalid.as<long>(), boost::bad_lexical_cast);
 
     Value v_bool(true);
-    EXPECT_EQ(1L, v_bool.as_long());
+    EXPECT_EQ(1L, v_bool.as<long>());
 }
 
 TEST(ValueTest, ParsedArgumentAsLong) {
@@ -335,39 +338,39 @@ TEST(ValueTest, ParsedArgumentAsLong) {
     char const* argv[] = { "--port=8080", "5" };
     Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
 
-    EXPECT_EQ(8080L, opts["--port"].as_long());
-    EXPECT_EQ(5L, opts["<count>"].as_long());
+    EXPECT_EQ(8080L, opts["--port"].as<long>());
+    EXPECT_EQ(5L, opts["<count>"].as<long>());
 }
 
 TEST(ValueTest, BoolConversionFromOtherTypes) {
     Value v_true_str("true");
-    EXPECT_TRUE(v_true_str.as_bool());
+    EXPECT_TRUE(v_true_str.as<bool>());
 
     Value v_false_str("false");
-    EXPECT_FALSE(v_false_str.as_bool());
+    EXPECT_FALSE(v_false_str.as<bool>());
 
     Value v_long_one(1L);
-    EXPECT_TRUE(v_long_one.as_bool());
+    EXPECT_TRUE(v_long_one.as<bool>());
 
     Value v_long_zero(0L);
-    EXPECT_FALSE(v_long_zero.as_bool());
+    EXPECT_FALSE(v_long_zero.as<bool>());
 
     Value v_true_ws("  true  ");
-    EXPECT_TRUE(v_true_ws.as_bool());
+    EXPECT_TRUE(v_true_ws.as<bool>());
 
     Value v_false_ws(" \tfalse\n ");
-    EXPECT_FALSE(v_false_ws.as_bool());
+    EXPECT_FALSE(v_false_ws.as<bool>());
 
     Value v_one_ws(" 1 ");
-    EXPECT_TRUE(v_one_ws.as_bool());
+    EXPECT_TRUE(v_one_ws.as<bool>());
 }
 
 TEST(ValueTest, StringConversionFromOtherTypes) {
     Value v_long(42L);
-    EXPECT_EQ("42", v_long.as_string());
+    EXPECT_EQ("42", v_long.as<std::string>());
 
     Value v_bool(true);
-    EXPECT_EQ("true", v_bool.as_string());
+    EXPECT_EQ("true", v_bool.as<std::string>());
 }
 
 TEST(ValueTest, StringListConversionFromSingleString) {
@@ -379,16 +382,165 @@ TEST(ValueTest, StringListConversionFromSingleString) {
 
 TEST(ValueTest, DoubleConversionVerification) {
     Value v_str("3.14");
-    EXPECT_DOUBLE_EQ(3.14, v_str.as_double());
+    EXPECT_DOUBLE_EQ(3.14, v_str.as<double>());
 
     Value v_long(42L);
-    EXPECT_DOUBLE_EQ(42.0, v_long.as_double());
+    EXPECT_DOUBLE_EQ(42.0, v_long.as<double>());
 
     Value v_bool(true);
-    EXPECT_DOUBLE_EQ(1.0, v_bool.as_double());
+    EXPECT_DOUBLE_EQ(1.0, v_bool.as<double>());
 
     Value v_invalid("abc");
-    EXPECT_THROW(v_invalid.as_double(), std::runtime_error);
+    EXPECT_THROW(v_invalid.as<double>(), boost::bad_lexical_cast);
+}
+
+// 1. is<T>() および C++11 is*() の全型網羅・相互排他テスト
+TEST(ValueTest, IsTypeQueryExhaustive) {
+    Value v_empty;
+    Value v_bool(true);
+    Value v_long(42L);
+    Value v_int(100);
+    Value v_str("hello");
+    std::vector<std::string> list;
+    list.push_back("a");
+    Value v_list(list);
+
+    // v_bool
+    EXPECT_TRUE(v_bool.is<bool>());
+    EXPECT_FALSE(v_bool.is<long>());
+    EXPECT_FALSE(v_bool.is<int>());
+    EXPECT_FALSE(v_bool.is<std::string>());
+    EXPECT_FALSE(v_bool.is_string_list());
+    EXPECT_FALSE(v_bool.is_empty());
+    EXPECT_TRUE(v_bool.isBool());
+    EXPECT_FALSE(v_bool.isLong());
+    EXPECT_FALSE(v_bool.isString());
+    EXPECT_FALSE(v_bool.isStringList());
+
+    // v_long
+    EXPECT_FALSE(v_long.is<bool>());
+    EXPECT_TRUE(v_long.is<long>());
+    EXPECT_TRUE(v_long.is<int>());
+    EXPECT_FALSE(v_long.is<std::string>());
+    EXPECT_FALSE(v_long.is_string_list());
+    EXPECT_FALSE(v_long.is_empty());
+    EXPECT_FALSE(v_long.isBool());
+    EXPECT_TRUE(v_long.isLong());
+    EXPECT_FALSE(v_long.isString());
+    EXPECT_FALSE(v_long.isStringList());
+
+    // v_int
+    EXPECT_FALSE(v_int.is<bool>());
+    EXPECT_TRUE(v_int.is<long>());
+    EXPECT_TRUE(v_int.is<int>());
+    EXPECT_FALSE(v_int.is<std::string>());
+    EXPECT_FALSE(v_int.is_string_list());
+    EXPECT_FALSE(v_int.is_empty());
+
+    // v_str
+    EXPECT_FALSE(v_str.is<bool>());
+    EXPECT_FALSE(v_str.is<long>());
+    EXPECT_FALSE(v_str.is<int>());
+    EXPECT_TRUE(v_str.is<std::string>());
+    EXPECT_FALSE(v_str.is_string_list());
+    EXPECT_FALSE(v_str.is_empty());
+    EXPECT_FALSE(v_str.isBool());
+    EXPECT_FALSE(v_str.isLong());
+    EXPECT_TRUE(v_str.isString());
+    EXPECT_FALSE(v_str.isStringList());
+
+    // v_list
+    EXPECT_FALSE(v_list.is<bool>());
+    EXPECT_FALSE(v_list.is<long>());
+    EXPECT_FALSE(v_list.is<int>());
+    EXPECT_FALSE(v_list.is<std::string>());
+    EXPECT_TRUE(v_list.is_string_list());
+    EXPECT_FALSE(v_list.is_empty());
+    EXPECT_FALSE(v_list.isBool());
+    EXPECT_FALSE(v_list.isLong());
+    EXPECT_FALSE(v_list.isString());
+    EXPECT_TRUE(v_list.isStringList());
+
+    // v_empty
+    EXPECT_FALSE(v_empty.is<bool>());
+    EXPECT_FALSE(v_empty.is<long>());
+    EXPECT_FALSE(v_empty.is<int>());
+    EXPECT_FALSE(v_empty.is<std::string>());
+    EXPECT_FALSE(v_empty.is_string_list());
+    EXPECT_TRUE(v_empty.is_empty());
+    EXPECT_FALSE(v_empty.isBool());
+    EXPECT_FALSE(v_empty.isLong());
+    EXPECT_FALSE(v_empty.isString());
+    EXPECT_FALSE(v_empty.isStringList());
+}
+
+// 2. as<T>() の例外パス網羅テスト
+TEST(ValueTest, AsUnsupportedConversionsThrow) {
+    Value empty_val;
+    std::vector<std::string> l;
+    l.push_back("x");
+    Value list_val(l);
+
+    EXPECT_THROW(empty_val.as<bool>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<long>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<double>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<std::string>(), boost::bad_lexical_cast);
+
+    EXPECT_THROW(list_val.as<bool>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<long>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<double>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<std::string>(), boost::bad_lexical_cast);
+}
+
+// 3. as<bool>() 文字列トークン解釈の網羅テスト
+TEST(ValueTest, BoolStringVariantsExhaustive) {
+    EXPECT_TRUE(Value("yes").as<bool>());
+    EXPECT_TRUE(Value("on").as<bool>());
+    EXPECT_TRUE(Value("YES").as<bool>());
+    EXPECT_TRUE(Value("ON").as<bool>());
+    EXPECT_TRUE(Value("True").as<bool>());
+
+    EXPECT_FALSE(Value("no").as<bool>());
+    EXPECT_FALSE(Value("off").as<bool>());
+    EXPECT_FALSE(Value("NO").as<bool>());
+    EXPECT_FALSE(Value("OFF").as<bool>());
+    EXPECT_FALSE(Value("False").as<bool>());
+    EXPECT_FALSE(Value("").as<bool>());
+
+    EXPECT_THROW(Value("maybe").as<bool>(), boost::bad_lexical_cast);
+}
+
+// 4. as_list<T>() 要素変換失敗例外テスト
+TEST(ValueTest, AsListElementConversionError) {
+    std::vector<std::string> invalid_list;
+    invalid_list.push_back("10");
+    invalid_list.push_back("not_int");
+    Value v(invalid_list);
+    EXPECT_THROW(v.as_list<int>(), boost::bad_lexical_cast);
+}
+
+// 5. 文字列リストの比較およびキャッシュテスト
+TEST(ValueTest, StringListComparisonAndCache) {
+    std::vector<std::string> l1;
+    l1.push_back("a");
+    std::vector<std::string> l2;
+    l2.push_back("b");
+    Value vl1(l1);
+    Value vl2(l2);
+
+    EXPECT_EQ(vl1, vl1);
+    EXPECT_NE(vl1, vl2);
+    EXPECT_LT(vl1, vl2);
+    EXPECT_FALSE(Value() < Value());
+
+    Value v_str("cached");
+    const std::vector<std::string>& ref1 = v_str.as_string_list();
+    const std::vector<std::string>& ref2 = v_str.as_string_list();
+    EXPECT_EQ(&ref1, &ref2);
+    EXPECT_EQ(1u, ref1.size());
+    EXPECT_EQ("cached", ref1[0]);
 }
 
 
@@ -431,8 +583,8 @@ TEST(BasicUsageTest, PositionalArgument) {
     std::vector<std::string> argv = make_args(argv_raw, 1);
 
     Options result = docoptcpp03::docopt_parse(doc, argv);
-    EXPECT_TRUE(result["<name>"].is_string());
-    EXPECT_EQ("John", result["<name>"].as_string());
+    EXPECT_TRUE(result["<name>"].is<std::string>());
+    EXPECT_EQ("John", result["<name>"].as<std::string>());
 }
 
 TEST(BasicUsageTest, MultiplePositionalArguments) {
@@ -441,8 +593,8 @@ TEST(BasicUsageTest, MultiplePositionalArguments) {
     std::vector<std::string> argv = make_args(argv_raw, 2);
 
     Options result = docoptcpp03::docopt_parse(doc, argv);
-    EXPECT_EQ("/path/src", result["<src>"].as_string());
-    EXPECT_EQ("/path/dst", result["<dst>"].as_string());
+    EXPECT_EQ("/path/src", result["<src>"].as<std::string>());
+    EXPECT_EQ("/path/dst", result["<dst>"].as<std::string>());
 }
 
 TEST(BasicUsageTest, ArgcArgvOverload) {
@@ -453,8 +605,8 @@ TEST(BasicUsageTest, ArgcArgvOverload) {
     int argc = 2;
 
     Options result = docoptcpp03::docopt_parse(doc, argc, argv);
-    EXPECT_EQ("Alice", result["<name>"].as_string());
-    EXPECT_TRUE(result["--verbose"].as_bool());
+    EXPECT_EQ("Alice", result["<name>"].as<std::string>());
+    EXPECT_TRUE(result["--verbose"].as<bool>());
 }
 
 //------------------------------------------------------------------------------
@@ -468,11 +620,11 @@ TEST(OptionParsingTest, ShortOptionFlag) {
     
     char const* argv_with_a[] = { "-a" };
     Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_with_a, 1));
-    EXPECT_TRUE(res1["-a"].as_bool());
+    EXPECT_TRUE(res1["-a"].as<bool>());
 
     char const* argv_empty[] = {};
     Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_empty, 0));
-    EXPECT_FALSE(res2["-a"].as_bool());
+    EXPECT_FALSE(res2["-a"].as<bool>());
 }
 
 TEST(OptionParsingTest, LongOptionWithEquals) {
@@ -482,7 +634,7 @@ TEST(OptionParsingTest, LongOptionWithEquals) {
 
     char const* argv[] = { "--output=out.txt" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
-    EXPECT_EQ("out.txt", res["--output"].as_string());
+    EXPECT_EQ("out.txt", res["--output"].as<std::string>());
 }
 
 TEST(OptionParsingTest, ShortOptionStacking) {
@@ -495,9 +647,9 @@ TEST(OptionParsingTest, ShortOptionStacking) {
 
     char const* argv[] = { "-ac" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
-    EXPECT_TRUE(res["-a"].as_bool());
-    EXPECT_FALSE(res["-b"].as_bool());
-    EXPECT_TRUE(res["-c"].as_bool());
+    EXPECT_TRUE(res["-a"].as<bool>());
+    EXPECT_FALSE(res["-b"].as<bool>());
+    EXPECT_TRUE(res["-c"].as<bool>());
 }
 
 //------------------------------------------------------------------------------
@@ -509,11 +661,11 @@ TEST(FlagCountingTest, RepeatableFlags) {
 
     char const* argv_v1[] = { "-v" };
     Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_v1, 1));
-    EXPECT_EQ(1L, res1["-v"].as_long());
+    EXPECT_EQ(1L, res1["-v"].as<long>());
 
     char const* argv_v3[] = { "-vvv" };
     Options res3 = docoptcpp03::docopt_parse(doc, make_args(argv_v3, 1));
-    EXPECT_EQ(3L, res3["-v"].as_long());
+    EXPECT_EQ(3L, res3["-v"].as<long>());
 }
 
 //------------------------------------------------------------------------------
@@ -528,17 +680,17 @@ TEST(CommandTest, Subcommands) {
 
     char const* argv_new[] = { "ship", "new", "Enterprise" };
     Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_new, 3));
-    EXPECT_TRUE(res1["ship"].as_bool());
-    EXPECT_TRUE(res1["new"].as_bool());
-    EXPECT_EQ("Enterprise", res1["<name>"].as_string());
+    EXPECT_TRUE(res1["ship"].as<bool>());
+    EXPECT_TRUE(res1["new"].as<bool>());
+    EXPECT_EQ("Enterprise", res1["<name>"].as<std::string>());
 
     char const* argv_move[] = { "ship", "move", "100", "200" };
     Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_move, 4));
-    EXPECT_TRUE(res2["ship"].as_bool());
-    EXPECT_TRUE(res2["move"].as_bool());
-    EXPECT_FALSE(res2["new"].as_bool());
-    EXPECT_EQ("100", res2["<x>"].as_string());
-    EXPECT_EQ("200", res2["<y>"].as_string());
+    EXPECT_TRUE(res2["ship"].as<bool>());
+    EXPECT_TRUE(res2["move"].as<bool>());
+    EXPECT_FALSE(res2["new"].as<bool>());
+    EXPECT_EQ("100", res2["<x>"].as<std::string>());
+    EXPECT_EQ("200", res2["<y>"].as<std::string>());
 }
 
 //------------------------------------------------------------------------------
@@ -553,11 +705,11 @@ TEST(DefaultsTest, DefaultOptionValues) {
 
     char const* argv_default[] = {};
     Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_default, 0));
-    EXPECT_EQ("10", res1["--speed"].as_string());
+    EXPECT_EQ("10", res1["--speed"].as<std::string>());
 
     char const* argv_custom[] = { "--speed=25" };
     Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_custom, 1));
-    EXPECT_EQ("25", res2["--speed"].as_string());
+    EXPECT_EQ("25", res2["--speed"].as<std::string>());
 }
 
 //------------------------------------------------------------------------------
@@ -573,9 +725,9 @@ TEST(OptionsShortcutTest, AutomaticDocOptions) {
 
     char const* argv[] = { "-v", "input.txt" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
-    EXPECT_TRUE(res["--verbose"].as_bool());
-    EXPECT_EQ("stdout", res["--output"].as_string());
-    EXPECT_EQ("input.txt", res["<file>"].as_string());
+    EXPECT_TRUE(res["--verbose"].as<bool>());
+    EXPECT_EQ("stdout", res["--output"].as<std::string>());
+    EXPECT_EQ("input.txt", res["<file>"].as<std::string>());
 }
 
 TEST(OptionsTest, ConstOptionsAccess) {
@@ -585,11 +737,11 @@ TEST(OptionsTest, ConstOptionsAccess) {
     const Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
 
     // const Options operator[] access
-    EXPECT_EQ("baz", opts["--foo"].as_string());
+    EXPECT_EQ("baz", opts["--foo"].as<std::string>());
     EXPECT_TRUE(opts["--nonexistent"].is_empty());
 
     // const Options at() access
-    EXPECT_EQ("baz", opts.at("--foo").as_string());
+    EXPECT_EQ("baz", opts.at("--foo").as<std::string>());
     EXPECT_THROW(opts.at("--nonexistent"), std::out_of_range);
 }
 
@@ -598,15 +750,15 @@ TEST(ValueTest, ValueDefaultAccessors) {
     Value str_val("100");
     Value bool_val(true);
 
-    EXPECT_EQ("default", empty_val.as_string_or("default"));
-    EXPECT_EQ("100", str_val.as_string_or("default"));
+    EXPECT_EQ("default", empty_val.as_or("default"));
+    EXPECT_EQ("100", str_val.as_or("default"));
 
-    EXPECT_EQ(100L, str_val.as_long_or(0L));
-    EXPECT_EQ(50L, empty_val.as_long_or(50L));
+    EXPECT_EQ(100L, str_val.as_or(0L));
+    EXPECT_EQ(50L, empty_val.as_or(50L));
 
-    EXPECT_TRUE(bool_val.as_bool_or(false));
-    EXPECT_TRUE(empty_val.as_bool_or(true));
-    EXPECT_FALSE(empty_val.as_bool_or(false));
+    EXPECT_TRUE(bool_val.as_or(false));
+    EXPECT_TRUE(empty_val.as_or(true));
+    EXPECT_FALSE(empty_val.as_or(false));
 }
 
 TEST(ValueTest, ValueAsCast) {
@@ -687,6 +839,17 @@ TEST(OptionsTest, OptionsHelperMethods) {
     EXPECT_EQ("stdout", opts.get("--output", "stdout"));
     EXPECT_EQ(25, opts.get<int>("--speed", 10));
     EXPECT_EQ(8080, opts.get<int>("--port", 8080));
+}
+
+TEST(OptionsTest, GetTemplateVariants) {
+    const std::string doc = "Usage: prog [--speed=<kn>] [--count=<n>] [--verbose]";
+    char const* argv[] = { "--speed=2.5", "--count=42", "--verbose" };
+    const Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 3));
+
+    EXPECT_EQ(42L, opts.get<long>("--count", 0L));
+    EXPECT_DOUBLE_EQ(2.5, opts.get<double>("--speed", 0.0));
+    EXPECT_TRUE(opts.get<bool>("--verbose", false));
+    EXPECT_FALSE(opts.get<bool>("--missing", false));
 }
 
 TEST(OptionsTest, OptionsDump) {
@@ -780,9 +943,9 @@ TEST(ValueTest, EmptyStringArgument) {
 
     char const* argv[] = { "--option", "" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
-    EXPECT_EQ("", res["--option"].as_string());
+    EXPECT_EQ("", res["--option"].as<std::string>());
     EXPECT_FALSE(res["--option"].is_empty());
-    EXPECT_TRUE(res["--option"].is_string());
+    EXPECT_TRUE(res["--option"].is<std::string>());
 }
 
 TEST(OptionsTest, CustomSectionNamesPartialMatch) {
@@ -800,16 +963,16 @@ TEST(OptionsTest, CustomSectionNamesPartialMatch) {
     {
         char const* argv[] = {};
         Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 0));
-        EXPECT_FALSE(res["--verbose"].as_bool());
-        EXPECT_EQ("10", res["--speed"].as_string());
+        EXPECT_FALSE(res["--verbose"].as<bool>());
+        EXPECT_EQ("10", res["--speed"].as<std::string>());
     }
 
     // Test case 2: Provided values
     {
         char const* argv[] = { "--speed=20", "--verbose" };
         Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
-        EXPECT_TRUE(res["--verbose"].as_bool());
-        EXPECT_EQ("20", res["--speed"].as_string());
+        EXPECT_TRUE(res["--verbose"].as<bool>());
+        EXPECT_EQ("20", res["--speed"].as<std::string>());
     }
 }
 
@@ -829,7 +992,7 @@ TEST(OptionsTest, UnrecognizedSectionsIgnored) {
     {
         char const* argv[] = { "--foo" };
         Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
-        EXPECT_TRUE(res["--foo"].as_bool());
+        EXPECT_TRUE(res["--foo"].as<bool>());
         EXPECT_TRUE(res["--bar"].is_empty()); // --bar is ignored and should be empty
     }
 }
@@ -849,16 +1012,16 @@ TEST(OptionsTest, MultilineUsageAndOptions) {
     {
         char const* argv[] = { "ship", "move", "1", "2" };
         Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 4));
-        EXPECT_EQ("10", res["--speed"].as_string());
-        EXPECT_EQ("1", res["<x>"].as_string());
-        EXPECT_EQ("2", res["<y>"].as_string());
+        EXPECT_EQ("10", res["--speed"].as<std::string>());
+        EXPECT_EQ("1", res["<x>"].as<std::string>());
+        EXPECT_EQ("2", res["<y>"].as<std::string>());
     }
 
     // Test case 2: Provided values
     {
         char const* argv[] = { "ship", "move", "1", "2", "--speed=25" };
         Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 5));
-        EXPECT_EQ("25", res["--speed"].as_string());
+        EXPECT_EQ("25", res["--speed"].as<std::string>());
     }
 }
 
@@ -937,8 +1100,8 @@ TEST(BoundaryCheckTest, EmptyStringPositionalArgument) {
 
     char const* argv[] = { "" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
-    EXPECT_TRUE(res["<arg>"].is_string());
-    EXPECT_EQ("", res["<arg>"].as_string());
+    EXPECT_TRUE(res["<arg>"].is<std::string>());
+    EXPECT_EQ("", res["<arg>"].as<std::string>());
 }
 
 TEST(BoundaryCheckTest, EmptyStringWithMultipleArgs) {
@@ -948,8 +1111,8 @@ TEST(BoundaryCheckTest, EmptyStringWithMultipleArgs) {
 
     char const* argv[] = { "", "val" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
-    EXPECT_EQ("", res["<first>"].as_string());
-    EXPECT_EQ("val", res["<second>"].as_string());
+    EXPECT_EQ("", res["<first>"].as<std::string>());
+    EXPECT_EQ("val", res["<second>"].as<std::string>());
 }
 
 TEST(BoundaryCheckTest, EmptyStringOptionValue) {
@@ -962,6 +1125,6 @@ TEST(BoundaryCheckTest, EmptyStringOptionValue) {
 
     char const* argv[] = { "--name=" };
     Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
-    EXPECT_TRUE(res["--name"].is_string());
-    EXPECT_EQ("", res["--name"].as_string());
+    EXPECT_TRUE(res["--name"].is<std::string>());
+    EXPECT_EQ("", res["--name"].as<std::string>());
 }

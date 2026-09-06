@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
             int x = opts["<x>"].as_or<int>(0);
             int y = opts["<y>"].as_or<int>(0);
             int speed = opts["--speed"].as_or<int>(10);
-            std::string name = opts["<name>"].as_string_or("Unassigned");
+            std::string name = opts["<name>"].as_or<std::string>("Unassigned");
             std::cout << "Moving ship '" << name << "' to (" << x << ", " << y << ") at speed " << speed << " kn" << std::endl;
         } else if (opts["mine"]) {
             int x = opts["<x>"].as_or<int>(0);
