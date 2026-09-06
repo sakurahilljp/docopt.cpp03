@@ -1185,3 +1185,382 @@ TEST(BoundaryCheckTest, EmptyStringOptionValue) {
     EXPECT_TRUE(res["--name"].is<std::string>());
     EXPECT_EQ("", res["--name"].as<std::string>());
 }
+
+//------------------------------------------------------------------------------
+// 10. OptionsFirst Parameter Tests
+//------------------------------------------------------------------------------
+
+TEST(OptionsFirstTest, StopsOptionParsingAfterFirstPositional) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v             Verbose output.\n"
+        "  -a, --all      Process all.\n";
+
+    char const* argv[] = { "cmd", "-v", "--all", "file.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 4), true, "", true);
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    EXPECT_FALSE(opts["--all"].as<bool>());
+    EXPECT_EQ("cmd", opts["<cmd>"].as<std::string>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(3u, args.size());
+    EXPECT_EQ("-v", args[0]);
+    EXPECT_EQ("--all", args[1]);
+    EXPECT_EQ("file.txt", args[2]);
+}
+
+TEST(OptionsFirstTest, ParsesOptionsBeforeFirstPositional) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v             Verbose output.\n"
+        "  -a, --all      Process all.\n";
+
+    char const* argv[] = { "-v", "cmd", "--all", "file.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 4), true, "", true);
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_FALSE(opts["--all"].as<bool>());
+    EXPECT_EQ("cmd", opts["<cmd>"].as<std::string>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(2u, args.size());
+    EXPECT_EQ("--all", args[0]);
+    EXPECT_EQ("file.txt", args[1]);
+}
+
+TEST(OptionsFirstTest, ComparisonWithDefaultOptionsFirstFalse) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "cmd", "-v" };
+
+    // options_first = false (default)
+    Options opts_default = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+    EXPECT_TRUE(opts_default["-v"].as<bool>());
+    EXPECT_EQ("cmd", opts_default["<cmd>"].as<std::string>());
+    EXPECT_TRUE(opts_default["<args>"].as_string_list().empty());
+
+    // options_first = true
+    Options opts_first = docoptcpp03::docopt_parse(doc, make_args(argv, 2), true, "", true);
+    EXPECT_FALSE(opts_first["-v"].as<bool>());
+    EXPECT_EQ("cmd", opts_first["<cmd>"].as<std::string>());
+    std::vector<std::string> args = opts_first["<args>"].as_string_list();
+    ASSERT_EQ(1u, args.size());
+    EXPECT_EQ("-v", args[0]);
+}
+
+TEST(OptionsFirstTest, GitStyleSubcommandDispatch) {
+    const std::string doc =
+        "Usage:\n"
+        "  git [--version] [--help] [-C <path>] <command> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -C <path>  Run as if git was started in <path>.\n";
+
+    char const* argv[] = { "-C", "/repo", "commit", "-m", "initial commit", "--amend" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 6), true, "", true);
+
+    EXPECT_EQ("/repo", opts["-C"].as<std::string>());
+    EXPECT_EQ("commit", opts["<command>"].as<std::string>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(3u, args.size());
+    EXPECT_EQ("-m", args[0]);
+    EXPECT_EQ("initial commit", args[1]);
+    EXPECT_EQ("--amend", args[2]);
+}
+
+TEST(OptionsFirstTest, OptionsOnlyWithoutPositional) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] [<cmd>]\n"
+        "\n"
+        "Options:\n"
+        "  -v  Verbose mode.\n";
+
+    char const* argv[] = { "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1), true, "", true);
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_TRUE(opts["<cmd>"].is_empty());
+}
+
+TEST(OptionsFirstTest, CStyleArgvOverload) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "cmd", "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, 2, argv, true, "", true);
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    EXPECT_EQ("cmd", opts["<cmd>"].as<std::string>());
+    ASSERT_EQ(1u, opts["<args>"].as_string_list().size());
+    EXPECT_EQ("-v", opts["<args>"].as_string_list()[0]);
+}
+
+//------------------------------------------------------------------------------
+// 11. Options Container API Tests
+//------------------------------------------------------------------------------
+
+TEST(OptionsContainerTest, SizeAndEmptyAndClear) {
+    Options opts;
+    EXPECT_TRUE(opts.empty());
+    EXPECT_EQ(0u, opts.size());
+
+    char const* argv[] = { "hello" };
+    opts = docoptcpp03::docopt_parse("Usage: prog <msg>\n", make_args(argv, 1));
+    EXPECT_FALSE(opts.empty());
+    EXPECT_EQ(1u, opts.size());
+
+    opts.clear();
+    EXPECT_TRUE(opts.empty());
+    EXPECT_EQ(0u, opts.size());
+}
+
+TEST(OptionsContainerTest, EqualityAndInequalityOperators) {
+    char const* argv1[] = { "-v" };
+    Options a = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv1, 1));
+    Options b = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv1, 1));
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a != b);
+
+    char const* argv2[] = {};
+    Options c = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv2, 0));
+    EXPECT_FALSE(a == c);
+    EXPECT_TRUE(a != c);
+
+    Options empty_opts;
+    EXPECT_FALSE(a == empty_opts);
+    EXPECT_TRUE(a != empty_opts);
+}
+
+TEST(OptionsContainerTest, IteratorsConstAndNonConst) {
+    char const* argv[] = { "foo", "--bar" };
+    const std::string doc =
+        "Usage: prog <name> [--bar]\n"
+        "Options:\n"
+        "  --bar  Bar flag.\n";
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    // const_iterator
+    const Options& const_opts = opts;
+    size_t count = 0;
+    for (Options::const_iterator it = const_opts.begin(); it != const_opts.end(); ++it) {
+        EXPECT_FALSE(it->first.empty());
+        ++count;
+    }
+    EXPECT_EQ(opts.size(), count);
+
+    // non-const iterator: modify value
+    for (Options::iterator it = opts.begin(); it != opts.end(); ++it) {
+        if (it->first == "<name>") {
+            it->second = Value("modified");
+        }
+    }
+    EXPECT_EQ("modified", opts["<name>"].as<std::string>());
+}
+
+TEST(OptionsContainerTest, FindAndCountAndKeyQueries) {
+    char const* argv[] = { "-a" };
+    const std::string doc =
+        "Usage: prog [-a]\n"
+        "Options:\n"
+        "  -a  Alpha.\n";
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+
+    // find (const)
+    const Options& const_opts = opts;
+    Options::const_iterator cit = const_opts.find("-a");
+    ASSERT_NE(const_opts.end(), cit);
+    EXPECT_TRUE(cit->second.as<bool>());
+    EXPECT_EQ(const_opts.end(), const_opts.find("-nonexistent"));
+
+    // find (non-const) & modify
+    Options::iterator it = opts.find("-a");
+    ASSERT_NE(opts.end(), it);
+    it->second = Value(false);
+    EXPECT_FALSE(opts["-a"].as<bool>());
+
+    // count
+    EXPECT_EQ(1u, opts.count("-a"));
+    EXPECT_EQ(0u, opts.count("-nonexistent"));
+
+    // has_key & contains
+    EXPECT_TRUE(opts.has_key("-a"));
+    EXPECT_TRUE(opts.contains("-a"));
+    EXPECT_FALSE(opts.has_key("-nonexistent"));
+    EXPECT_FALSE(opts.contains("-nonexistent"));
+}
+
+TEST(OptionsContainerTest, MapAccessorAndConstructor) {
+    std::map<std::string, Value> raw_map;
+    raw_map["key1"] = Value("value1");
+    raw_map["key2"] = Value(42L);
+
+    Options opts(raw_map);
+    EXPECT_EQ(2u, opts.size());
+    EXPECT_EQ("value1", opts["key1"].as<std::string>());
+    EXPECT_EQ(42L, opts["key2"].as<long>());
+
+    const std::map<std::string, Value>& retrieved_map = opts.map();
+    EXPECT_EQ(2u, retrieved_map.size());
+    EXPECT_EQ("value1", retrieved_map.find("key1")->second.as<std::string>());
+}
+
+//------------------------------------------------------------------------------
+// 12. docopt() Convenience Wrapper Death Tests
+//------------------------------------------------------------------------------
+
+TEST(DocoptDeathTest, HelpTriggersExit0) {
+    const std::string doc =
+        "Usage: prog [options]\n"
+        "Options:\n"
+        "  -h, --help  Show help.\n";
+
+    char const* argv[] = { "--help" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, make_args(argv, 1), true, "1.0"),
+        ::testing::ExitedWithCode(0),
+        ""
+    );
+}
+
+TEST(DocoptDeathTest, VersionTriggersExit0) {
+    const std::string doc =
+        "Usage: prog [options]\n"
+        "Options:\n"
+        "  --version  Show version.\n";
+
+    char const* argv[] = { "--version" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, make_args(argv, 1), true, "2.1.0"),
+        ::testing::ExitedWithCode(0),
+        ""
+    );
+}
+
+TEST(DocoptDeathTest, InvalidArgumentTriggersExit1) {
+    const std::string doc = "Usage: prog <name>\n";
+
+    char const* argv[] = { "--unknown" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, make_args(argv, 1)),
+        ::testing::ExitedWithCode(1),
+        ""
+    );
+}
+
+TEST(DocoptDeathTest, LanguageErrorTriggersExit) {
+    const std::string bad_doc = "Usage: prog [unclosed\n";
+
+    char const* argv[] = { "foo" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(bad_doc, make_args(argv, 1)),
+        ::testing::ExitedWithCode(1),
+        "Docopt language error:.*"
+    );
+}
+
+TEST(DocoptDeathTest, CStyleArgvTriggersExit) {
+    const std::string doc =
+        "Usage: prog [options]\n"
+        "Options:\n"
+        "  -h, --help  Show help.\n";
+
+    char const* argv[] = { "-h" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, 1, argv, true, "1.0"),
+        ::testing::ExitedWithCode(0),
+        ""
+    );
+}
+
+//------------------------------------------------------------------------------
+// 13. End-of-Options ("--") Unit Tests
+//------------------------------------------------------------------------------
+
+TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "--", "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(1u, args.size());
+    EXPECT_EQ("-v", args[0]);
+}
+
+TEST(EndOfOptionsTest, OptionsBeforeDoubleDashAreParsed) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n"
+        "  -a  All flag.\n";
+
+    char const* argv[] = { "-v", "--", "-a", "file.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 4));
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_FALSE(opts["-a"].as<bool>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(2u, args.size());
+    EXPECT_EQ("-a", args[0]);
+    EXPECT_EQ("file.txt", args[1]);
+}
+
+TEST(EndOfOptionsTest, DoubleDashWithExplicitDashInUsage) {
+    const std::string doc =
+        "Usage: prog [--] <file>\n";
+
+    char const* argv[] = { "--", "-f" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_EQ("-f", opts["<file>"].as<std::string>());
+}
+
+TEST(EndOfOptionsTest, DoubleDashAtEndOfArguments) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "-v", "--" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_TRUE(opts["<args>"].as_string_list().empty());
+}
+
+TEST(EndOfOptionsTest, CStyleArgvDoubleDash) {
+    const std::string doc =
+        "Usage: prog [options] [<args>...]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "--", "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, 2, argv);
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    ASSERT_EQ(1u, opts["<args>"].as_string_list().size());
+    EXPECT_EQ("-v", opts["<args>"].as_string_list()[0]);
+}
+
+
+
+

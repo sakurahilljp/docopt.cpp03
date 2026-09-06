@@ -24,8 +24,8 @@
 | **アーキテクチャ・設計** | ✅ 良好 | 正規表現に依存しない AST ベースのパーサ。C++03 制約下で合理的な設計 |
 | **メモリ安全性** | ✅ 修正済み | 過去の UAF (CWE-416)、境界外読取 (CWE-125)、空文字列 UB (CWE-758) は全て解消 |
 | **API 設計** | ✅ 良好 | テンプレート・CamelCase 互換の二重 API、フォールバック付きアクセサ、例外階層が充実 |
-| **テストカバレッジ** | ⚠️ 概ね良好（欠落あり） | 60 件の単体テスト + 957 行の Python 準拠機能テスト。ただし重要な未テスト領域あり |
-| **ドキュメント** | ⚠️ 複数箇所で不一致 | README と実装の齟齬、CHANGELOG のフォーマット不備あり |
+| **テストカバレッジ** | ✅ 良好（網羅的） | 81 件の単体テスト + 957 行の Python 準拠機能テスト。指摘された未テスト領域はすべて解消 |
+| **ドキュメント** | ✅ 修正済み | README と実装の齟齬解消、スレッドセーフティ追記、CHANGELOG リファレンスリンク・分類修正完了 |
 
 ---
 
@@ -99,44 +99,30 @@ flowchart TD
 
 ---
 
-### 🟡 Medium: ドキュメントと例外型の不一致
+### ℹ️ Informational: 過去レポートと現在の例外型の差異
 
 **箇所**: [docopt.cpp:L154-234](../docopt.cpp#L154-L234) `Value::as<T>()` の各特殊化
 
-**問題**: [value_conversion_methods_investigation_report.md](./value_conversion_methods_investigation_report.md) では型変換失敗時に `std::runtime_error` をスローすると記載されていますが、実装は `boost::bad_lexical_cast` をスローします。呼び出し側が `std::runtime_error` で catch すると漏れます。
+**内容**: 過去の調査レポート [value_conversion_methods_investigation_report.md](./value_conversion_methods_investigation_report.md)（v1.2.4 以前）では型変換失敗時に `std::runtime_error` をスローすると記録されていましたが、現在の実装およびテストは `boost::bad_lexical_cast`（`std::bad_cast` 派生）を一貫して送出します。過去レポートは当時の経緯記録として維持し、現行仕様は README および単体テストにて管理されます。
 
-**推奨対応**: ドキュメントを実装に合わせて `boost::bad_lexical_cast`（`std::bad_cast` 派生）に修正する
 
 ---
 
-### 🟡 Medium: スレッドセーフティの非保証（文書化不足）
+### 🟡 ~~Medium: スレッドセーフティの非保証（文書化不足）~~（✅ 修正完了）
 
 **箇所**:
 - [docopt.cpp:L147-152](../docopt.cpp#L147-L152) `Value::as_string_list()` — `const` メソッドが `mutable` メンバを変更（遅延キャッシュ）
 - [docopt.h:L160](../docopt.h#L160) `Options::operator[] const` — C++03 では関数内 `static` 変数の初期化がスレッドセーフでない
 
-**問題**: 同一の `Value` / `Options` オブジェクトを複数スレッドから同期なしに読み出すことは安全ではありませんが、この制約がドキュメントに記載されていません。
-
-**推奨対応**: README に「シングルスレッド用途を前提」と明記する
+**対応**: [README.md](../README.md) に「Thread Safety」セクションを新設し、「シングルスレッド用途を前提」と明記完了。
 
 ---
 
-### 🟢 Low: `docopt()` ラッパーの `std::exit()` によるスタック巻き戻し省略
+### 🟢 ~~Low: `docopt()` ラッパーの `std::exit()` によるスタック巻き戻し省略~~（✅ 修正完了）
 
 **箇所**: [docopt.cpp:L1591-1609](../docopt.cpp#L1591-L1609) `docopt()`
 
-```cpp
-} catch (const DocoptExit& e) {
-    if (!e.usage.empty()) {
-        std::cout << e.usage << std::endl;
-    }
-    std::exit(e.status);  // スタック巻き戻しなし
-}
-```
-
-**問題**: `std::exit()` はローカルオブジェクトのデストラクタを呼ばずにプロセスを終了します。リソースリーク（ファイルハンドル等）の可能性あり。
-
-**推奨対応**: README に `docopt_parse()` の直接使用を推奨する注意書きを追加
+**対応**: [README.md](../README.md) に `docopt()` と `docopt_parse()` の比較解説を追加し、RAII リソース解放を行う場合は `docopt_parse()` の使用が推奨される旨の注意書きを明記完了。
 
 ---
 
@@ -157,7 +143,7 @@ flowchart TD
 
 | テストファイル | フレームワーク | テスト数 | 対象 |
 |:---|:---|:---:|:---|
-| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest | **60 件** | Value 型、Options、例外、パース、メモリ安全性 |
+| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest | **81 件** | Value 型、Options、例外、パース、メモリ安全性、options_first、コンテナ API、デステスト、-- 終端 |
 | [test_docopt.cpp](../test_docopt.cpp) | カスタムハーネス | **957 行分** | Python 参照テストケースとの互換性検証 |
 
 ### ✅ 十分にテストされている領域
@@ -181,81 +167,29 @@ flowchart TD
 | オプションパース | `OptionParsingTest`, `FlagCountingTest`, `CommandTest`, `DefaultsTest` | ✅ ショート/ロング/スタッキング/カウント |
 | メモリ安全性 | `SharedPtrTest`, `BoundaryCheckTest` | ✅ 自己代入、連鎖破棄 UAF、境界チェック |
 | Python 互換性 | `test_docopt.cpp` | ✅ `testcases.docopt` 全ケースの自動比較 |
+| `options_first` 動作 | `OptionsFirstTest` | ✅ 先行オプション、位置引数以降の停止、デフォルト比較、Git風ディスパッチ等 6 ケース |
+| `Options` コンテナ API | `OptionsContainerTest` | ✅ `size`, `empty`, `clear`, イテレータ, `operator==`/`!=`, `find`, `map` 等 5 ケース |
+| `docopt()` ラッパー（デステスト） | `DocoptDeathTest` | ✅ `--help`/`--version` で exit(0)、引数・言語エラーで exit(1) 等 5 ケース |
+| `--`（オプション終端） | `EndOfOptionsTest` | ✅ `--` 以降の停止、先行オプションパース、`[--]` 構文、末尾 `--` 等 5 ケース |
 | コンパイル時エラー (`is<double>()`) | — | ✅ 静的にしかテスト不可（設計通り） |
 
-### ⚠️ テストが不足している重要な領域
+### ℹ️ かつてテストが不足していた重要な領域（✅ すべて解消済み）
 
-> [!WARNING]
-> 以下の領域にはテストカバレッジがありません。
+> [!NOTE]
+> レビュー時に指摘された以下の 4 領域については、すべて網羅的な単体テスト（計 21 件）を追加して解消済みです。
 
-#### 1. `docopt()` コンビニエンス関数（デステスト）
-`docopt()` ラッパー自体のテストがゼロです。GoogleTest の `EXPECT_EXIT` で以下を検証すべきです：
+#### 1. `docopt()` コンビニエンス関数（デステスト）（✅ 対応完了）
+[unit_tests.cpp](../unit_tests.cpp) に `DocoptDeathTest` スイート（計 5 件）を追加し、GoogleTest の `EXPECT_EXIT` を用いて `--help`（exit 0）、`--version`（exit 0）、不正引数（exit 1）、`DocoptLanguageError`（exit 1 / `std::cerr` 出力）、および C スタイル `(int argc, char* argv[])` オーバーロードでの正常・異常終了動作を網羅的に検証済みです。
 
-```cpp
-// 追加すべきテスト例
-TEST(DocoptWrapperDeathTest, HelpTriggersExit0) {
-    EXPECT_EXIT(
-        docopt(USAGE, make_args({"--help"}), true, "1.0"),
-        ::testing::ExitedWithCode(0), "");
-}
+#### 2. `options_first = true` の動作（✅ 対応完了）
+[unit_tests.cpp](../unit_tests.cpp) に `OptionsFirstTest` スイート（計 6 件）を追加し、先行オプションのパース、位置引数以降の解析停止、デフォルト（`false`）との差異、Git 風サブコマンド引数ディスパッチ、位置引数なしケース、C スタイル `(int argc, char* argv[])` オーバーロードを網羅的に検証済みです。
 
-TEST(DocoptWrapperDeathTest, InvalidArgTriggersExit1) {
-    EXPECT_EXIT(
-        docopt(USAGE, make_args({"--unknown"})),
-        ::testing::ExitedWithCode(1), "");
-}
-```
+#### 3. `Options` コンテナ API（✅ 対応完了）
+[unit_tests.cpp](../unit_tests.cpp) に `OptionsContainerTest` スイート（計 5 件）を追加し、`size()` / `empty()` / `clear()` による状態制御、`operator==` / `operator!=` による比較、`const` / 非 `const` イテレータ走査と値変更、`find()` / `count()` / `has_key()` / `contains()` によるキー検索、および `std::map` アクセサ（`map()`）・コンストラクタを網羅的に検証済みです。
 
-#### 2. `options_first = true` の動作
-`options_first` パラメータのテストが一切ありません（`grep` で 0 件確認済み）。
+#### 4. `--`（オプション終端）の明示的ユニットテスト（✅ 対応完了）
+[unit_tests.cpp](../unit_tests.cpp) に `EndOfOptionsTest` スイート（計 5 件）を追加し、`--` 以降のオプション解析停止と位置引数化、先行オプションのパース、`[--]` 明示的 Usage 構文、引数末尾 `--` の処理、および C スタイル `(int argc, char* argv[])` オーバーロードを網羅的に検証済みです。
 
-```cpp
-// 追加すべきテスト例
-TEST(OptionsFirstTest, StopsParsingAfterFirstPositional) {
-    const char* doc = "Usage: prog [options] <cmd> [<args>...]\n\nOptions:\n  -v  Verbose\n";
-    const char* argv[] = {"cmd", "-v"};
-    Options opts = docopt_parse(doc, make_args(argv, 2), true, "", true);
-    // options_first=true なので "-v" はオプションではなく位置引数として解釈される
-    EXPECT_FALSE(opts["-v"].as<bool>());
-}
-```
-
-#### 3. `Options` コンテナ API
-`begin()` / `end()` イテレータ、`size()`、`empty()`、`clear()`、`operator==` / `operator!=` の専用テストがありません。
-
-```cpp
-// 追加すべきテスト例
-TEST(OptionsContainerTest, SizeAndEmptyAndClear) {
-    Options opts;
-    EXPECT_TRUE(opts.empty());
-    EXPECT_EQ(0u, opts.size());
-    // パース後
-    opts = docopt_parse("Usage: prog <name>\n", make_args({"foo"}, 1));
-    EXPECT_FALSE(opts.empty());
-    EXPECT_EQ(1u, opts.size());
-    opts.clear();
-    EXPECT_TRUE(opts.empty());
-}
-
-TEST(OptionsContainerTest, EqualityOperator) {
-    Options a = docopt_parse("Usage: prog -v\n", make_args({"-v"}, 1));
-    Options b = docopt_parse("Usage: prog -v\n", make_args({"-v"}, 1));
-    EXPECT_EQ(a, b);
-}
-```
-
-#### 4. `--`（オプション終端）の明示的ユニットテスト
-Python テストケースには含まれていますが、C++ ユニットテスト側に明示的なテストがありません。
-
-```cpp
-// 追加すべきテスト例
-TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
-    const char* doc = "Usage: prog [options] [<args>...]\n\nOptions:\n  -v  Verbose\n";
-    const char* argv[] = {"--", "-v"};
-    Options opts = docopt_parse(doc, make_args(argv, 2));
-    EXPECT_FALSE(opts["-v"].as<bool>());  // "-v" は位置引数として扱われる
-}
-```
 
 ---
 
@@ -263,12 +197,12 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 
 ### README の不一致
 
-| # | 箇所 | 問題 | 深刻度 |
-|:-:|:---|:---|:---:|
-| 1 | README L55 | `docopt()` のエラー出力先が「`std::cerr`」と記載されているが、実際は `DocoptExit`（引数エラー含む）は全て **`std::cout`** に出力 | 中 |
-| 2 | README L169 | `as_list<T>()` が `boost::lexical_cast` で直接変換と記載されているが、実際は `Value::as<T>()` に委譲 | 小 |
-| 3 | README L111-151 | `cd build` 後に `./build/unit_tests` を実行する手順（パス不整合） | 小 |
-| 4 | README 全体 | `options_first` パラメータの説明が一切なし | 中 |
+| # | 箇所 | 問題 | 深刻度 | 状態 |
+|:-:|:---|:---|:---:|:---:|
+| 1 | README L55 | `docopt()` のエラー出力先が「`std::cerr`」と記載されているが、実際は `DocoptExit`（引数エラー含む）は全て **`std::cout`** に出力 | 中 | ✅ 解決済 |
+| 2 | README L169 | `as_list<T>()` が `boost::lexical_cast` で直接変換と記載されているが、実際は `Value::as<T>()` に委譲 | 小 | ✅ 解決済 |
+| 3 | README L111-151 | `cd build` 後に `./build/unit_tests` を実行する手順（パス不整合） | 小 | ✅ 解決済 |
+| 4 | README 全体 | `options_first` パラメータの説明が一切なし | 中 | ✅ 解決済 |
 
 ### サンプルコードの問題
 
@@ -281,31 +215,31 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 
 ### CHANGELOG のフォーマット問題
 
-| # | 問題 | Keep a Changelog 準拠 |
-|:-:|:---|:---:|
-| 1 | 末尾の比較用リファレンスリンク定義が完全に欠落 | ❌ 違反 |
-| 2 | v1.4.0 の API 削除が `### Changed` に混在（`### Removed` にすべき） | ❌ 違反 |
-| 3 | v1.2.3 のセキュリティ修正が `### Fixed` に記載（`### Security` 推奨） | ⚠️ 推奨違反 |
+| # | 問題 | Keep a Changelog 準拠 | 状態 |
+|:-:|:---|:---:|:---:|
+| 1 | 末尾の比較用リファレンスリンク定義が完全に欠落 | ❌ 違反 | ✅ 解決済 |
+| 2 | v1.4.0 の API 削除が `### Changed` に混在（`### Removed` にすべき） | ❌ 違反 | ✅ 解決済 |
+| 3 | v1.2.3 のセキュリティ修正が `### Fixed` に記載（`### Security` 推奨） | ⚠️ 推奨違反 | ✅ 解決済 |
 
 ---
 
 ## 5. 推奨アクション一覧（優先度順）
 
-### コード修正
-1. **[Medium]** ドキュメント内の例外型記述を `boost::bad_lexical_cast` に統一
-2. **[Low]** README にスレッドセーフティの注意事項を追記
+### コード・ドキュメント修正
+1. **[Info]** 過去レポートとの例外型差異を現行仕様（`boost::bad_lexical_cast`）として確認・整理済み（過去レポートは履歴維持）
+2. **[Low]** ~~README にスレッドセーフティの注意事項を追記~~（✅ 完了）
 3. **[Low]** `Pattern::children()` — `const` 参照化 + `mutable_children()` 分離（次回リファクタ時）
 
 ### テスト追加
-4. **[High]** `options_first = true` のテストを追加
-5. **[High]** `docopt()` ラッパーのデステスト（`EXPECT_EXIT`）を追加
-6. **[Medium]** `Options` コンテナ API（`size`, `empty`, `clear`, イテレータ, `operator==`）のテスト追加
-7. **[Medium]** `--`（オプション終端）の明示的ユニットテスト追加
+4. **[High]** ~~`options_first = true` のテストを追加~~（✅ 完了: `OptionsFirstTest` 6 件追加）
+5. **[High]** ~~`docopt()` ラッパーのデステスト（`EXPECT_EXIT`）を追加~~（✅ 完了: `DocoptDeathTest` 5 件追加）
+6. **[Medium]** ~~`Options` コンテナ API（`size`, `empty`, `clear`, イテレータ, `operator==`）のテスト追加~~（✅ 完了: `OptionsContainerTest` 5 件追加）
+7. **[Medium]** ~~`--`（オプション終端）の明示的ユニットテスト追加~~（✅ 完了: `EndOfOptionsTest` 5 件追加）
 
 ### ドキュメント修正
-8. **[Medium]** README: `docopt()` の出力先ストリーム記述を修正
-9. **[Medium]** README: `options_first` パラメータの解説を追加
-10. **[Medium]** CHANGELOG: リファレンスリンク追加、セクション分類修正
+8. **[Medium]** ~~README: `docopt()` の出力先ストリーム記述を修正~~（✅ 完了）
+9. **[Medium]** ~~README: `options_first` パラメータの解説を追加~~（✅ 完了）
+10. **[Medium]** ~~CHANGELOG: リファレンスリンク追加、セクション分類修正~~（✅ 完了）
 11. **[Low]** サンプルコード: `naval_fate` の `shoot` 実装追加、`calculator` の例外処理追加
 
 ---

@@ -50,10 +50,60 @@ int main(int argc, char* argv[]) {
 
 ## Parsing Functions: `docopt()` vs `docopt_parse()`
 
-`docoptcpp03` provides two functions depending on your error handling needs:
+`docoptcpp03` provides two parsing functions depending on your error handling needs:
 
-- **`docoptcpp03::docopt(...)`**: Convenient auto-exiting parser. Automatically catches exceptions, prints help/error messages to `std::cout`/`std::cerr`, and calls `std::exit(status)`. Ideal for standard CLI applications.
-- **`docoptcpp03::docopt_parse(...)`**: Pure parser that throws exceptions on help, version, or syntax errors. Ideal when you want to handle exceptions manually or embed the parser in larger applications.
+- **`docoptcpp03::docopt(...)`**: Convenient auto-exiting parser. Automatically catches `DocoptExit` (help/version/argument errors) and `DocoptLanguageError`, prints help or error messages to `std::cout`, and terminates the process via `std::exit(status)`. Ideal for simple CLI applications.
+  > [!NOTE]
+  > Because `std::exit()` terminates the process immediately without unwinding the stack (skipping local object destructors), use `docoptcpp03::docopt_parse(...)` if your application relies on strict RAII resource cleanup.
+- **`docoptcpp03::docopt_parse(...)`**: Pure exception-throwing parser that throws `DocoptExit` (`DocoptExitHelp`, `DocoptExitVersion`, `DocoptArgumentError`) or `DocoptLanguageError`. Ideal when you need manual exception handling, clean RAII resource teardown, or integration into larger libraries and applications.
+
+### Function Signatures & Parameters
+
+Both functions provide overloads for `std::vector<std::string>` and C-style argument arrays:
+
+```cpp
+// Pure parser (throws exceptions on exit/error)
+Options docopt_parse(
+    const std::string& doc,
+    const std::vector<std::string>& argv,
+    bool help = true,
+    const std::string& version = "",
+    bool options_first = false
+);
+Options docopt_parse(
+    const std::string& doc,
+    int argc,
+    char const* const argv[],
+    bool help = true,
+    const std::string& version = "",
+    bool options_first = false
+);
+
+// Auto-exiting convenience wrapper (prints to std::cout and calls std::exit)
+Options docopt(
+    const std::string& doc,
+    const std::vector<std::string>& argv,
+    bool help = true,
+    const std::string& version = "",
+    bool options_first = false
+);
+Options docopt(
+    const std::string& doc,
+    int argc,
+    char const* const argv[],
+    bool help = true,
+    const std::string& version = "",
+    bool options_first = false
+);
+```
+
+#### Parameter Reference:
+- `doc`: Help message and usage pattern string.
+- `argv` / `argc, argv`: Command-line arguments (excluding the executable name).
+- `help`: Automatically handle `-h` and `--help` flags (default: `true`).
+- `version`: Version string to output when `--version` is passed (default: `""`).
+- `options_first`: When set to `true`, stops option parsing after encountering the first positional argument (subcommand or argument). Subsequent arguments are treated as positional arguments even if they begin with `-` or `--`. Essential for Git-style subcommand dispatching (e.g. `git [options] <command> [<args>...]`) or POSIX compliance (default: `false`).
+
 
 ## Exception Handling (`DocoptExit` & `DocoptLanguageError`)
 
@@ -107,12 +157,14 @@ try {
 
 ## Building & Testing
 
+### Building with CMake
+
+From the repository root directory:
+
 ```bash
-mkdir build
-cd build
-cmake ..
-make
-ctest --output-on-failure
+cmake -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
 ### Integrating with CMake
@@ -127,17 +179,23 @@ target_link_libraries(my_target PRIVATE docoptcpp03::docopt)
 
 ### Running GoogleTest Unit Tests Directly
 
+From the repository root directory:
+
 ```bash
 ./build/unit_tests
 ```
 
 ### Running Official docopt Testcases Directly
 
+From the repository root directory:
+
 ```bash
 ./build/test_docopt docopt.python/testcases.docopt
 ```
 
 ### Running Sample Programs (`cmds/`)
+
+From the repository root directory:
 
 ```bash
 # Naval Fate sample
@@ -166,7 +224,7 @@ The result of `docoptcpp03::docopt` (or `docoptcpp03::docopt_parse`) is `docoptc
 | `val.as<T>()` | `T` | Converts value to type `T` (`bool`, `long`, `int`, `double`, `std::string`) | `opts["--port"].as<int>()` |
 | `val.as_or(default_val)` / `val.as_or<T>(def)` | `T` | Converts value to type `T` or returns fallback if empty / conversion fails | `opts["--speed"].as_or(0.05)` |
 | `val.as_string_list()` | `const std::vector<std::string>&` | Gets string argument vector directly (zero-copy reference) | `opts["<file>"].as_string_list()` |
-| `val.as_list<T>()` | `std::vector<T>` | Converts string list to `std::vector<T>` via `boost::lexical_cast<T>` | `opts["<nums>"].as_list<int>()` |
+| `val.as_list<T>()` | `std::vector<T>` | Converts string list to `std::vector<T>` by delegating each element to `Value::as<T>()` | `opts["<nums>"].as_list<int>()` |
 | `val.is_truthy()` | `bool` | Returns `true` if flag is `true` or non-empty value is set | `opts["--verbose"].is_truthy()` |
 | `if (val)` / Safe Bool Cast | `bool` | Contextual Safe Bool conversion to test if value is set / truthy | `if (opts["--verbose"])` |
 | `if (!val)` / Logical NOT | `bool` | Logical negation operator to test if value is empty / falsy | `if (!opts["--output"])` |
@@ -272,6 +330,13 @@ In this example:
 | `(set \| remove)` | Required mutually exclusive choice | `my_app (set \| remove)` |
 | `<item>...` | Repeatable argument or option (parses into string list) | `my_app <file>...` |
 | `[default: 10]` | Default value specification in option description | `--speed=<kn> Speed [default: 10]` |
+
+## Thread Safety
+
+`docoptcpp03` is designed for single-threaded command-line parsing at program startup.
+- Parsing operations (`docopt()`, `docopt_parse()`) and resulting `Options` / `Value` instances are not thread-safe.
+- `Value::as_string_list()` uses lazy caching internally on a `mutable` member, and `Options::operator[] const` relies on a static empty value fallback.
+- Concurrent reading or writing to the same `Options` or `Value` objects across multiple threads without explicit synchronization (e.g., mutex locking) is not supported.
 
 ## License
 
