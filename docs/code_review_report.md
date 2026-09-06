@@ -24,7 +24,7 @@
 | **アーキテクチャ・設計** | ✅ 良好 | 正規表現に依存しない AST ベースのパーサ。C++03 制約下で合理的な設計 |
 | **メモリ安全性** | ✅ 修正済み | 過去の UAF (CWE-416)、境界外読取 (CWE-125)、空文字列 UB (CWE-758) は全て解消 |
 | **API 設計** | ✅ 良好 | テンプレート・CamelCase 互換の二重 API、フォールバック付きアクセサ、例外階層が充実 |
-| **テストカバレッジ** | ⚠️ 概ね良好（欠落あり） | 71 件の単体テスト + 957 行の Python 準拠機能テスト。ただし重要な未テスト領域あり |
+| **テストカバレッジ** | ⚠️ 概ね良好（欠落あり） | 76 件の単体テスト + 957 行の Python 準拠機能テスト。ただし重要な未テスト領域あり |
 | **ドキュメント** | ✅ 修正済み | README と実装の齟齬解消、スレッドセーフティ追記、CHANGELOG リファレンスリンク・分類修正完了 |
 
 ---
@@ -143,7 +143,7 @@ flowchart TD
 
 | テストファイル | フレームワーク | テスト数 | 対象 |
 |:---|:---|:---:|:---|
-| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest | **71 件** | Value 型、Options、例外、パース、メモリ安全性、options_first、コンテナ API |
+| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest | **76 件** | Value 型、Options、例外、パース、メモリ安全性、options_first、コンテナ API、デステスト |
 | [test_docopt.cpp](../test_docopt.cpp) | カスタムハーネス | **957 行分** | Python 参照テストケースとの互換性検証 |
 
 ### ✅ 十分にテストされている領域
@@ -169,6 +169,7 @@ flowchart TD
 | Python 互換性 | `test_docopt.cpp` | ✅ `testcases.docopt` 全ケースの自動比較 |
 | `options_first` 動作 | `OptionsFirstTest` | ✅ 先行オプション、位置引数以降の停止、デフォルト比較、Git風ディスパッチ等 6 ケース |
 | `Options` コンテナ API | `OptionsContainerTest` | ✅ `size`, `empty`, `clear`, イテレータ, `operator==`/`!=`, `find`, `map` 等 5 ケース |
+| `docopt()` ラッパー（デステスト） | `DocoptDeathTest` | ✅ `--help`/`--version` で exit(0)、引数・言語エラーで exit(1) 等 5 ケース |
 | コンパイル時エラー (`is<double>()`) | — | ✅ 静的にしかテスト不可（設計通り） |
 
 ### ⚠️ テストが不足している重要な領域
@@ -176,23 +177,9 @@ flowchart TD
 > [!WARNING]
 > 以下の領域にはテストカバレッジがありません。
 
-#### 1. `docopt()` コンビニエンス関数（デステスト）
-`docopt()` ラッパー自体のテストがゼロです。GoogleTest の `EXPECT_EXIT` で以下を検証すべきです：
+#### 1. `docopt()` コンビニエンス関数（デステスト）（✅ 対応完了）
+[unit_tests.cpp](../unit_tests.cpp) に `DocoptDeathTest` スイート（計 5 件）を追加し、GoogleTest の `EXPECT_EXIT` を用いて `--help`（exit 0）、`--version`（exit 0）、不正引数（exit 1）、`DocoptLanguageError`（exit 1 / `std::cerr` 出力）、および C スタイル `(int argc, char* argv[])` オーバーロードでの正常・異常終了動作を網羅的に検証済みです。
 
-```cpp
-// 追加すべきテスト例
-TEST(DocoptWrapperDeathTest, HelpTriggersExit0) {
-    EXPECT_EXIT(
-        docopt(USAGE, make_args({"--help"}), true, "1.0"),
-        ::testing::ExitedWithCode(0), "");
-}
-
-TEST(DocoptWrapperDeathTest, InvalidArgTriggersExit1) {
-    EXPECT_EXIT(
-        docopt(USAGE, make_args({"--unknown"})),
-        ::testing::ExitedWithCode(1), "");
-}
-```
 
 #### 2. `options_first = true` の動作（✅ 対応完了）
 [unit_tests.cpp](../unit_tests.cpp) に `OptionsFirstTest` スイート（計 6 件）を追加し、先行オプションのパース、位置引数以降の解析停止、デフォルト（`false`）との差異、Git 風サブコマンド引数ディスパッチ、位置引数なしケース、C スタイル `(int argc, char* argv[])` オーバーロードを網羅的に検証済みです。
@@ -256,7 +243,7 @@ TEST(EndOfOptionsTest, DoubleDashStopsOptionParsing) {
 
 ### テスト追加
 4. **[High]** ~~`options_first = true` のテストを追加~~（✅ 完了: `OptionsFirstTest` 6 件追加）
-5. **[High]** `docopt()` ラッパーのデステスト（`EXPECT_EXIT`）を追加
+5. **[High]** ~~`docopt()` ラッパーのデステスト（`EXPECT_EXIT`）を追加~~（✅ 完了: `DocoptDeathTest` 5 件追加）
 6. **[Medium]** ~~`Options` コンテナ API（`size`, `empty`, `clear`, イテレータ, `operator==`）のテスト追加~~（✅ 完了: `OptionsContainerTest` 5 件追加）
 7. **[Medium]** `--`（オプション終端）の明示的ユニットテスト追加
 

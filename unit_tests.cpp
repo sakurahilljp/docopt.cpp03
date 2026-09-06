@@ -1419,4 +1419,73 @@ TEST(OptionsContainerTest, MapAccessorAndConstructor) {
     EXPECT_EQ("value1", retrieved_map.find("key1")->second.as<std::string>());
 }
 
+//------------------------------------------------------------------------------
+// 12. docopt() Convenience Wrapper Death Tests
+//------------------------------------------------------------------------------
+
+TEST(DocoptDeathTest, HelpTriggersExit0) {
+    const std::string doc =
+        "Usage: prog [options]\n"
+        "Options:\n"
+        "  -h, --help  Show help.\n";
+
+    char const* argv[] = { "--help" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, make_args(argv, 1), true, "1.0"),
+        ::testing::ExitedWithCode(0),
+        ""
+    );
+}
+
+TEST(DocoptDeathTest, VersionTriggersExit0) {
+    const std::string doc =
+        "Usage: prog [options]\n"
+        "Options:\n"
+        "  --version  Show version.\n";
+
+    char const* argv[] = { "--version" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, make_args(argv, 1), true, "2.1.0"),
+        ::testing::ExitedWithCode(0),
+        ""
+    );
+}
+
+TEST(DocoptDeathTest, InvalidArgumentTriggersExit1) {
+    const std::string doc = "Usage: prog <name>\n";
+
+    char const* argv[] = { "--unknown" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, make_args(argv, 1)),
+        ::testing::ExitedWithCode(1),
+        ""
+    );
+}
+
+TEST(DocoptDeathTest, LanguageErrorTriggersExit) {
+    const std::string bad_doc = "Usage: prog [unclosed\n";
+
+    char const* argv[] = { "foo" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(bad_doc, make_args(argv, 1)),
+        ::testing::ExitedWithCode(1),
+        "Docopt language error:.*"
+    );
+}
+
+TEST(DocoptDeathTest, CStyleArgvTriggersExit) {
+    const std::string doc =
+        "Usage: prog [options]\n"
+        "Options:\n"
+        "  -h, --help  Show help.\n";
+
+    char const* argv[] = { "-h" };
+    EXPECT_EXIT(
+        docoptcpp03::docopt(doc, 1, argv, true, "1.0"),
+        ::testing::ExitedWithCode(0),
+        ""
+    );
+}
+
+
 

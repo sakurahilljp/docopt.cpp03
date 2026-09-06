@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Iteration and element access via `const_iterator` and non-const `iterator`.
   - Lookup and querying methods (`find()`, `count()`, `has_key()`, `contains()`).
   - Underlying `std::map` accessor (`map()`) and `std::map` constructor.
+- **Death Test Coverage for `docopt()` Convenience Wrapper**: Added `DocoptDeathTest` test suite in `unit_tests.cpp` using GoogleTest `EXPECT_EXIT`:
+  - Process termination with code `0` on `--help`.
+  - Process termination with code `0` on `--version`.
+  - Process termination with code `1` on invalid/unrecognized arguments.
+  - Process termination with code `1` on usage string syntax errors (`DocoptLanguageError`) with error message output to `std::cerr`.
+  - Verification of C-style array `(int argc, char const* const argv[])` overload.
+
 
 
 
