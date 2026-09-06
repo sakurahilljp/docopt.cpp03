@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Unit Test Coverage for `options_first` parameter**: Added `OptionsFirstTest` test suite in `unit_tests.cpp` covering:
+  - Disabling option parsing after the first positional argument.
+  - Parsing options specified before the first positional argument.
+  - Behavior comparison between `options_first = true` and `options_first = false` (default).
+  - Git-style subcommand dispatching with subcommand-specific options/flags passed as positional arguments.
+  - Parsing options when no positional argument is provided.
+  - Both `std::vector<std::string>` and C-style `argc, argv` overloads.
+
 
 ## [1.4.0] - 2026-09-06
 

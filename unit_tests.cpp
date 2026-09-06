@@ -1185,3 +1185,128 @@ TEST(BoundaryCheckTest, EmptyStringOptionValue) {
     EXPECT_TRUE(res["--name"].is<std::string>());
     EXPECT_EQ("", res["--name"].as<std::string>());
 }
+
+//------------------------------------------------------------------------------
+// 10. OptionsFirst Parameter Tests
+//------------------------------------------------------------------------------
+
+TEST(OptionsFirstTest, StopsOptionParsingAfterFirstPositional) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v             Verbose output.\n"
+        "  -a, --all      Process all.\n";
+
+    char const* argv[] = { "cmd", "-v", "--all", "file.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 4), true, "", true);
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    EXPECT_FALSE(opts["--all"].as<bool>());
+    EXPECT_EQ("cmd", opts["<cmd>"].as<std::string>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(3u, args.size());
+    EXPECT_EQ("-v", args[0]);
+    EXPECT_EQ("--all", args[1]);
+    EXPECT_EQ("file.txt", args[2]);
+}
+
+TEST(OptionsFirstTest, ParsesOptionsBeforeFirstPositional) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v             Verbose output.\n"
+        "  -a, --all      Process all.\n";
+
+    char const* argv[] = { "-v", "cmd", "--all", "file.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 4), true, "", true);
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_FALSE(opts["--all"].as<bool>());
+    EXPECT_EQ("cmd", opts["<cmd>"].as<std::string>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(2u, args.size());
+    EXPECT_EQ("--all", args[0]);
+    EXPECT_EQ("file.txt", args[1]);
+}
+
+TEST(OptionsFirstTest, ComparisonWithDefaultOptionsFirstFalse) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "cmd", "-v" };
+
+    // options_first = false (default)
+    Options opts_default = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+    EXPECT_TRUE(opts_default["-v"].as<bool>());
+    EXPECT_EQ("cmd", opts_default["<cmd>"].as<std::string>());
+    EXPECT_TRUE(opts_default["<args>"].as_string_list().empty());
+
+    // options_first = true
+    Options opts_first = docoptcpp03::docopt_parse(doc, make_args(argv, 2), true, "", true);
+    EXPECT_FALSE(opts_first["-v"].as<bool>());
+    EXPECT_EQ("cmd", opts_first["<cmd>"].as<std::string>());
+    std::vector<std::string> args = opts_first["<args>"].as_string_list();
+    ASSERT_EQ(1u, args.size());
+    EXPECT_EQ("-v", args[0]);
+}
+
+TEST(OptionsFirstTest, GitStyleSubcommandDispatch) {
+    const std::string doc =
+        "Usage:\n"
+        "  git [--version] [--help] [-C <path>] <command> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -C <path>  Run as if git was started in <path>.\n";
+
+    char const* argv[] = { "-C", "/repo", "commit", "-m", "initial commit", "--amend" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 6), true, "", true);
+
+    EXPECT_EQ("/repo", opts["-C"].as<std::string>());
+    EXPECT_EQ("commit", opts["<command>"].as<std::string>());
+    std::vector<std::string> args = opts["<args>"].as_string_list();
+    ASSERT_EQ(3u, args.size());
+    EXPECT_EQ("-m", args[0]);
+    EXPECT_EQ("initial commit", args[1]);
+    EXPECT_EQ("--amend", args[2]);
+}
+
+TEST(OptionsFirstTest, OptionsOnlyWithoutPositional) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] [<cmd>]\n"
+        "\n"
+        "Options:\n"
+        "  -v  Verbose mode.\n";
+
+    char const* argv[] = { "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1), true, "", true);
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_TRUE(opts["<cmd>"].is_empty());
+}
+
+TEST(OptionsFirstTest, CStyleArgvOverload) {
+    const std::string doc =
+        "Usage:\n"
+        "  prog [options] <cmd> [<args>...]\n"
+        "\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+
+    char const* argv[] = { "cmd", "-v" };
+    Options opts = docoptcpp03::docopt_parse(doc, 2, argv, true, "", true);
+
+    EXPECT_FALSE(opts["-v"].as<bool>());
+    EXPECT_EQ("cmd", opts["<cmd>"].as<std::string>());
+    ASSERT_EQ(1u, opts["<args>"].as_string_list().size());
+    EXPECT_EQ("-v", opts["<args>"].as_string_list()[0]);
+}
+
