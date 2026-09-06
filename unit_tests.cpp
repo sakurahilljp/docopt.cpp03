@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <climits>
 
 using namespace docoptcpp03;
 
@@ -542,6 +543,62 @@ TEST(ValueTest, StringListComparisonAndCache) {
     EXPECT_EQ(1u, ref1.size());
     EXPECT_EQ("cached", ref1[0]);
 }
+
+TEST(ValueTest, ValueAsIntOptimization) {
+    // 1. KIND_LONG to int conversion
+    Value v_zero(0L);
+    EXPECT_EQ(0, v_zero.as<int>());
+
+    Value v_pos(12345L);
+    EXPECT_EQ(12345, v_pos.as<int>());
+
+    Value v_neg(-6789L);
+    EXPECT_EQ(-6789, v_neg.as<int>());
+
+    // Boundary values INT_MAX, INT_MIN
+    Value v_max(static_cast<long>(INT_MAX));
+    EXPECT_EQ(INT_MAX, v_max.as<int>());
+
+    Value v_min(static_cast<long>(INT_MIN));
+    EXPECT_EQ(INT_MIN, v_min.as<int>());
+
+    // Overflow & underflow detection if sizeof(long) > sizeof(int)
+    if (sizeof(long) > sizeof(int)) {
+        Value v_overflow(static_cast<long>(INT_MAX) + 1L);
+        EXPECT_THROW(v_overflow.as<int>(), boost::bad_lexical_cast);
+
+        Value v_underflow(static_cast<long>(INT_MIN) - 1L);
+        EXPECT_THROW(v_underflow.as<int>(), boost::bad_lexical_cast);
+
+        // as_or<int> with overflow fallback
+        EXPECT_EQ(999, v_overflow.as_or<int>(999));
+        EXPECT_EQ(-999, v_underflow.as_or<int>(-999));
+    }
+
+    // 2. KIND_STRING to int conversion
+    Value v_str("42");
+    EXPECT_EQ(42, v_str.as<int>());
+
+    Value v_str_invalid("not_an_int");
+    EXPECT_THROW(v_str_invalid.as<int>(), boost::bad_lexical_cast);
+
+    // 3. KIND_BOOL to int conversion
+    Value v_true(true);
+    EXPECT_EQ(1, v_true.as<int>());
+
+    Value v_false(false);
+    EXPECT_EQ(0, v_false.as<int>());
+
+    // 4. Unsupported kinds throw boost::bad_lexical_cast
+    Value v_empty;
+    EXPECT_THROW(v_empty.as<int>(), boost::bad_lexical_cast);
+
+    std::vector<std::string> list;
+    list.push_back("1");
+    Value v_list(list);
+    EXPECT_THROW(v_list.as<int>(), boost::bad_lexical_cast);
+}
+
 
 
 TEST(ExceptionTest, DocoptExitException) {

@@ -343,6 +343,9 @@ template <>
 long Value::as<long>() const;
 
 template <>
+int Value::as<int>() const;
+
+template <>
 double Value::as<double>() const;
 
 template <>
