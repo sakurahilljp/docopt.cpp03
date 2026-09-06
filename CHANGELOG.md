@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-07
+
 ### Added
 - **Unit Test Coverage for `options_first` parameter**: Added `OptionsFirstTest` test suite in `unit_tests.cpp` covering:
   - Disabling option parsing after the first positional argument.
@@ -34,8 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Handling of trailing `--` at the end of the argument stream.
   - Verification of C-style array `(int argc, char const* const argv[])` overload.
 
-
-
+### Changed
+- **Documentation Enhancements (`README.md`)**:
+  - Corrected `docopt()` output stream documentation (`DocoptExit` outputs to `std::cout`, not `std::cerr`).
+  - Added warning regarding `std::exit()` and RAII destructors when using convenience wrapper `docopt()`.
+  - Documented full C-style array `(int argc, char const* const argv[])` function signatures and default arguments.
+  - Clarified delegation mechanism of `as_list<T>()` to `as<T>()`.
+  - Added a dedicated `## Thread Safety` section detailing parser instance safety, `const Options` query safety, and shared cache behaviors.
 
 
 ## [1.4.0] - 2026-09-06
@@ -198,7 +205,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial ported codebase based on Python `docopt` v0.6.2.
 
-[Unreleased]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.2.4...v1.3.0
 [1.2.4]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.2.3...v1.2.4
