@@ -10,7 +10,7 @@
 ### ✅ INFO — 正しく実装されている点
 
 | 項目 | 評価 |
-|------|------|
+| ------ | ------ |
 | C++03 コンパイル時エラー機構 (`docopt_is_supported_type<false>`) | ✅ 不完全型を使った C++03 互換の `static_assert` 代替。`is<double>()` 等の非対応型で明確なコンパイルエラー |
 | CamelCase 互換ラッパー (`isBool()`, `asBool()` 等) | ✅ 新テンプレートメソッドに正しく委譲 |
 | テンプレート特殊化の順序 / ODR 準拠 | ✅ 明示的特殊化はヘッダで宣言、`.cpp` で定義。C++03 ODR に準拠 |
@@ -22,7 +22,7 @@
 
 **`as<int>()` の非効率な文字列ラウンドトリップ**
 
-[docopt.h:L327-337](file:///Users/satoniho/repos/docopt.cpp03/docopt.h#L327-L337) の汎用テンプレート `Value::as<T>()` は `boost::lexical_cast` を使用しています：
+[docopt.h:L327-337](../docopt.h#L327-L337) の汎用テンプレート `Value::as<T>()` は `boost::lexical_cast` を使用しています：
 
 ```cpp
 template <typename T>
@@ -53,7 +53,7 @@ inline T Value::as() const {
 ### 十分にカバーされている領域
 
 | テスト対象 | テストケース | 状態 |
-|-----------|-------------|------|
+| ----------- | ------------- | ------ |
 | `is<T>()` 全バリアント | `IsTypeQueryExhaustive` | ✅ 全 Kind × 全型の直交テスト |
 | `as<bool/long/double/string>()` 正常系 | `BoolValue`, `LongValue`, `DoubleValue`, `StringValue` | ✅ 型間変換含む |
 | `as<T>()` エラーパス | `AsUnsupportedConversionsThrow` | ✅ `KIND_EMPTY`, `KIND_STRING_LIST` で `bad_lexical_cast` |
@@ -71,7 +71,7 @@ inline T Value::as() const {
 ### ⚠️ カバレッジギャップ（軽微）
 
 | ギャップ | 重大度 | 詳細 |
-|---------|--------|------|
+| --------- | -------- | ------ |
 | `docopt()` ラッパー | 低 | `std::exit()` を呼ぶため GoogleTest での直接テスト困難。`docopt_parse()` は十分テスト済み |
 | `help=false` / `version=""` バイパス | 低 | `extras()` が `--help`/`--version` を処理しないケースの明示テストなし。Python テストスイート（175件）で間接カバー |
 | クロス型 `operator<` 網羅性 | 低 | `Kind` enum の整数値に依存するフォールバック。基本ケースはテスト済みだが全組み合わせは未列挙 |
@@ -81,7 +81,7 @@ inline T Value::as() const {
 ## 3. 総合評価
 
 | 観点 | 評価 |
-|------|------|
+| ------ | ------ |
 | コード品質 | ⭐⭐⭐⭐⭐ |
 | C++03 互換性 | ⭐⭐⭐⭐⭐ |
 | テストカバレッジ | ⭐⭐⭐⭐☆ |
