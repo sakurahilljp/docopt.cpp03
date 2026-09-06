@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <cassert>
+#include <climits>
 #include <stdexcept>
 
 namespace docoptcpp03 {
@@ -181,6 +182,23 @@ long Value::as<long>() const {
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1L : 0L;
+    }
+    throw boost::bad_lexical_cast();
+}
+
+template <>
+int Value::as<int>() const {
+    if (kind_ == KIND_LONG) {
+        if (long_val_ < INT_MIN || long_val_ > INT_MAX) {
+            throw boost::bad_lexical_cast();
+        }
+        return static_cast<int>(long_val_);
+    }
+    if (kind_ == KIND_STRING) {
+        return boost::lexical_cast<int>(str_val_);
+    }
+    if (kind_ == KIND_BOOL) {
+        return bool_val_ ? 1 : 0;
     }
     throw boost::bad_lexical_cast();
 }

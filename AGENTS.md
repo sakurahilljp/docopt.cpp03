@@ -18,7 +18,7 @@ Whenever modifying code, creating branches, committing, or merging changes in th
 5. **Maintain CHANGELOG.md by Release Tags**:
    - When modifying functional code, bugfixes, or specifications, update `CHANGELOG.md` adhering strictly to [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
    - Ensure all past and current release tags (`vX.Y.Z`) and `[Unreleased]` sections are accurately partitioned and documented.
-6. **Request Review Before Committing**: Once changes, documentation, and tests are completed, present the exact diff (including `CHANGELOG.md`) and request user review before running `git commit`.
+6. **Request Review Before Committing**: Once changes, documentation, and tests are completed, stage all target files (`git add`), present a concise summary and key diffs (avoid dumping entire large diffs unless explicitly requested), and request user review before running `git commit`.
 7. **Commit Only After Review Approval**: Commit the changes to the working branch only after the user explicitly reviews and approves the diff.
 8. **Request Approval Before Merging**: Before merging the working branch into `main`, ask for the user's explicit permission.
 9. **Use Normal Merge**: When merging the approved working branch into `main`, always perform a normal merge (`git merge --no-ff`) to preserve commit history, unless instructed otherwise.
