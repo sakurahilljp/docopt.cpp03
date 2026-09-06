@@ -22,3 +22,4 @@ Whenever modifying code, creating branches, committing, or merging changes in th
 7. **Commit Only After Review Approval**: Commit the changes to the working branch only after the user explicitly reviews and approves the diff.
 8. **Request Approval Before Merging**: Before merging the working branch into `main`, ask for the user's explicit permission.
 9. **Use Normal Merge**: When merging the approved working branch into `main`, always perform a normal merge (`git merge --no-ff`) to preserve commit history, unless instructed otherwise.
+10. **Delete Working Branch After Merge**: Once the working branch has been successfully merged into `main`, delete the local working branch (and remote branch, if applicable) to keep the repository clean, unless explicitly instructed to keep it.
