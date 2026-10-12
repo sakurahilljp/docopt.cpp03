@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Unit Test Coverage for Single Dash (`-`)**: Added `SingleDashTest` test suite in `unit_tests.cpp` covering:
+  - Command/flag handling when defined as `[-]` or `-` in usage patterns.
+  - Absence handling of optional `[-]` defaulting to boolean `false`.
+  - Positional argument binding when passed to `<file>`.
+  - Positional argument list accumulation when passed within `[<files>...]`.
+  - Coexistence of single dash with regular flags/options.
+  - Exception throwing (`DocoptExit`) on unexpected single dash input.
+  - Verification of C-style array `(int argc, char const* const argv[])` overload.
 - **Zero-Dependency Architecture**: Completely removed external dependencies on Boost (`<boost/lexical_cast.hpp>`). Implemented built-in, standard C++03 type conversion engine `docoptcpp03::detail::lexical_cast`.
 - **Standard Include Guards**: Added `#ifndef DOCOPT_H_` / `#define DOCOPT_H_` and `#ifndef DOCOPT_PRIVATE_H_` / `#define DOCOPT_PRIVATE_H_` header guards across public and internal header files for maximum portability across all C++03 conforming compilers.
 - **`docoptcpp03::bad_value_cast` Exception**: Introduced standard exception type `bad_value_cast` (derived from `std::bad_cast`) for conversion errors, along with backward-compatible typedef `docoptcpp03::bad_lexical_cast`.
