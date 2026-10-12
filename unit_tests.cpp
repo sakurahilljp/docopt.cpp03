@@ -325,7 +325,8 @@ TEST(ValueTest, StringToLongConversion) {
     EXPECT_EQ(-99L, v_neg.as<long>());
 
     Value v_invalid("not_a_number");
-    EXPECT_THROW(v_invalid.as<long>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_invalid.as<long>(), docoptcpp03::bad_value_cast);
+    EXPECT_THROW(v_invalid.as<long>(), docoptcpp03::bad_lexical_cast); // verify alias
 
     Value v_bool(true);
     EXPECT_EQ(1L, v_bool.as<long>());
@@ -392,7 +393,7 @@ TEST(ValueTest, DoubleConversionVerification) {
     EXPECT_DOUBLE_EQ(1.0, v_bool.as<double>());
 
     Value v_invalid("abc");
-    EXPECT_THROW(v_invalid.as<double>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_invalid.as<double>(), docoptcpp03::bad_value_cast);
 }
 
 // 1. is<T>() および C++11 is*() の全型網羅・相互排他テスト
@@ -482,17 +483,17 @@ TEST(ValueTest, AsUnsupportedConversionsThrow) {
     l.push_back("x");
     Value list_val(l);
 
-    EXPECT_THROW(empty_val.as<bool>(), boost::bad_lexical_cast);
-    EXPECT_THROW(empty_val.as<long>(), boost::bad_lexical_cast);
-    EXPECT_THROW(empty_val.as<int>(), boost::bad_lexical_cast);
-    EXPECT_THROW(empty_val.as<double>(), boost::bad_lexical_cast);
-    EXPECT_THROW(empty_val.as<std::string>(), boost::bad_lexical_cast);
+    EXPECT_THROW(empty_val.as<bool>(), bad_value_cast);
+    EXPECT_THROW(empty_val.as<long>(), bad_value_cast);
+    EXPECT_THROW(empty_val.as<int>(), bad_value_cast);
+    EXPECT_THROW(empty_val.as<double>(), bad_value_cast);
+    EXPECT_THROW(empty_val.as<std::string>(), bad_value_cast);
 
-    EXPECT_THROW(list_val.as<bool>(), boost::bad_lexical_cast);
-    EXPECT_THROW(list_val.as<long>(), boost::bad_lexical_cast);
-    EXPECT_THROW(list_val.as<int>(), boost::bad_lexical_cast);
-    EXPECT_THROW(list_val.as<double>(), boost::bad_lexical_cast);
-    EXPECT_THROW(list_val.as<std::string>(), boost::bad_lexical_cast);
+    EXPECT_THROW(list_val.as<bool>(), bad_value_cast);
+    EXPECT_THROW(list_val.as<long>(), bad_value_cast);
+    EXPECT_THROW(list_val.as<int>(), bad_value_cast);
+    EXPECT_THROW(list_val.as<double>(), bad_value_cast);
+    EXPECT_THROW(list_val.as<std::string>(), bad_value_cast);
 }
 
 // 3. as<bool>() 文字列トークン解釈の網羅テスト
@@ -510,7 +511,7 @@ TEST(ValueTest, BoolStringVariantsExhaustive) {
     EXPECT_FALSE(Value("False").as<bool>());
     EXPECT_FALSE(Value("").as<bool>());
 
-    EXPECT_THROW(Value("maybe").as<bool>(), boost::bad_lexical_cast);
+    EXPECT_THROW(Value("maybe").as<bool>(), bad_value_cast);
 }
 
 // 4. as_list<T>() 要素変換失敗例外テスト
@@ -519,7 +520,7 @@ TEST(ValueTest, AsListElementConversionError) {
     invalid_list.push_back("10");
     invalid_list.push_back("not_int");
     Value v(invalid_list);
-    EXPECT_THROW(v.as_list<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v.as_list<int>(), bad_value_cast);
 }
 
 // 5. 文字列リストの比較およびキャッシュテスト
@@ -565,10 +566,10 @@ TEST(ValueTest, ValueAsIntOptimization) {
     // Overflow & underflow detection if sizeof(long) > sizeof(int)
     if (sizeof(long) > sizeof(int)) {
         Value v_overflow(static_cast<long>(INT_MAX) + 1L);
-        EXPECT_THROW(v_overflow.as<int>(), boost::bad_lexical_cast);
+        EXPECT_THROW(v_overflow.as<int>(), bad_value_cast);
 
         Value v_underflow(static_cast<long>(INT_MIN) - 1L);
-        EXPECT_THROW(v_underflow.as<int>(), boost::bad_lexical_cast);
+        EXPECT_THROW(v_underflow.as<int>(), bad_value_cast);
 
         // as_or<int> with overflow fallback
         EXPECT_EQ(999, v_overflow.as_or<int>(999));
@@ -580,7 +581,7 @@ TEST(ValueTest, ValueAsIntOptimization) {
     EXPECT_EQ(42, v_str.as<int>());
 
     Value v_str_invalid("not_an_int");
-    EXPECT_THROW(v_str_invalid.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_str_invalid.as<int>(), bad_value_cast);
 
     // 3. KIND_BOOL to int conversion
     Value v_true(true);
@@ -589,14 +590,14 @@ TEST(ValueTest, ValueAsIntOptimization) {
     Value v_false(false);
     EXPECT_EQ(0, v_false.as<int>());
 
-    // 4. Unsupported kinds throw boost::bad_lexical_cast
+    // 4. Unsupported kinds throw bad_value_cast
     Value v_empty;
-    EXPECT_THROW(v_empty.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_empty.as<int>(), bad_value_cast);
 
     std::vector<std::string> list;
     list.push_back("1");
     Value v_list(list);
-    EXPECT_THROW(v_list.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_list.as<int>(), bad_value_cast);
 }
 
 
@@ -679,7 +680,7 @@ TEST(OptionParsingTest, ShortOptionFlag) {
     Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_with_a, 1));
     EXPECT_TRUE(res1["-a"].as<bool>());
 
-    char const* argv_empty[] = {};
+    char const* const* argv_empty = 0;
     Options res2 = docoptcpp03::docopt_parse(doc, make_args(argv_empty, 0));
     EXPECT_FALSE(res2["-a"].as<bool>());
 }
@@ -760,7 +761,7 @@ TEST(DefaultsTest, DefaultOptionValues) {
         "Options:\n"
         "  --speed=<kn>  Speed in knots [default: 10].";
 
-    char const* argv_default[] = {};
+    char const* const* argv_default = 0;
     Options res1 = docoptcpp03::docopt_parse(doc, make_args(argv_default, 0));
     EXPECT_EQ("10", res1["--speed"].as<std::string>());
 
@@ -845,10 +846,10 @@ TEST(ValueTest, ValueAsTemplateComprehensive) {
     EXPECT_EQ(1L, v_bool_true.as<long>());
 
     Value v_invalid("abc");
-    EXPECT_THROW(v_invalid.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_invalid.as<int>(), bad_value_cast);
 
     Value v_empty;
-    EXPECT_THROW(v_empty.as<int>(), boost::bad_lexical_cast);
+    EXPECT_THROW(v_empty.as<int>(), bad_value_cast);
 
     // 2. as<double>
     Value v_str_double("3.14");
@@ -931,7 +932,7 @@ TEST(OptionsTest, OptionsDump) {
 
 TEST(ErrorHandlingTest, MissingRequiredArgument) {
     const std::string doc = "Usage: prog <required>";
-    char const* argv[] = {};
+    char const* const* argv = 0;
     EXPECT_THROW(docoptcpp03::docopt_parse(doc, make_args(argv, 0)), DocoptExit);
 }
 
@@ -954,7 +955,7 @@ TEST(ErrorHandlingTest, AmbiguousPrefixOption) {
 
 TEST(ErrorHandlingTest, InvalidDocSyntaxNoUsage) {
     const std::string doc = "Invalid doc without usage section";
-    char const* argv[] = {};
+    char const* const* argv = 0;
     EXPECT_THROW(docoptcpp03::docopt_parse(doc, make_args(argv, 0)), DocoptLanguageError);
 }
 
@@ -1018,7 +1019,7 @@ TEST(OptionsTest, CustomSectionNamesPartialMatch) {
 
     // Test case 1: Defaults
     {
-        char const* argv[] = {};
+        char const* const* argv = 0;
         Options res = docoptcpp03::docopt_parse(doc, make_args(argv, 0));
         EXPECT_FALSE(res["--verbose"].as<bool>());
         EXPECT_EQ("10", res["--speed"].as<std::string>());
@@ -1336,7 +1337,7 @@ TEST(OptionsContainerTest, EqualityAndInequalityOperators) {
     EXPECT_TRUE(a == b);
     EXPECT_FALSE(a != b);
 
-    char const* argv2[] = {};
+    char const* const* argv2 = 0;
     Options c = docoptcpp03::docopt_parse("Usage: prog [-v]\nOptions: -v", make_args(argv2, 0));
     EXPECT_FALSE(a == c);
     EXPECT_TRUE(a != c);

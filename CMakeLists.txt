@@ -23,8 +23,6 @@ if(ENABLE_ASAN)
     add_link_options(-fsanitize=address,undefined)
 endif()
 
-add_definitions(-DDOCOPT_USE_CUSTOM_LEXICAL_CAST)
-
 # docopt library
 add_library(docopt STATIC docopt.cpp docopt.h)
 add_library(docoptcpp03::docopt ALIAS docopt)
@@ -33,7 +31,7 @@ target_include_directories(docopt PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 if(NOT MSVC)
-    target_compile_options(docopt PRIVATE -std=c++03)
+    target_compile_options(docopt PRIVATE -std=c++03 -pedantic-errors)
 endif()
 
 # Installation & Export targets
@@ -69,7 +67,7 @@ install(FILES
 add_executable(test_docopt test_docopt.cpp)
 target_link_libraries(test_docopt PRIVATE docopt)
 if(NOT MSVC)
-    target_compile_options(test_docopt PRIVATE -std=c++03)
+    target_compile_options(test_docopt PRIVATE -std=c++03 -pedantic-errors)
 endif()
 
 # Fetch GoogleTest
@@ -95,7 +93,13 @@ add_test(NAME docopt_gtest_unit_tests COMMAND unit_tests)
 # Sample executables under cmds/
 add_executable(naval_fate cmds/naval_fate/main.cpp)
 target_link_libraries(naval_fate PRIVATE docopt)
+if(NOT MSVC)
+    target_compile_options(naval_fate PRIVATE -std=c++03 -pedantic-errors)
+endif()
 
 add_executable(calculator cmds/calculator/main.cpp)
 target_link_libraries(calculator PRIVATE docopt)
+if(NOT MSVC)
+    target_compile_options(calculator PRIVATE -std=c++03 -pedantic-errors)
+endif()
 

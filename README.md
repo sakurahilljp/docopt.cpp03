@@ -260,13 +260,7 @@ To make migration from the `docopt for C++11` library seamless, `docoptcpp03::Va
 
 `docoptcpp03::Value` also provides `.to_json()` for JSON serialization and supports stream output (`std::cout << val`).
 
-By default, `docopt.h` includes official Boost headers (`<boost/lexical_cast.hpp>`).
-If compiling with `-std=c++03` under newer Boost versions (Boost 1.81+) that require C++11, define `DOCOPT_USE_CUSTOM_LEXICAL_CAST` to use the C++03-compatible `boost::lexical_cast` fallback:
-
-```cpp
-#define DOCOPT_USE_CUSTOM_LEXICAL_CAST
-#include "docopt.h"
-```
+`docopt.cpp03` is completely self-contained and **zero-dependency** (100% ISO C++03 standard library compliant; no Boost or other third-party libraries required). Type conversions throw `docoptcpp03::bad_value_cast` (derived from `std::bad_cast`) on failure, with `docoptcpp03::bad_lexical_cast` provided as a typedef alias.
 
 ## Help Message Section Rules
 
