@@ -1562,6 +1562,74 @@ TEST(EndOfOptionsTest, CStyleArgvDoubleDash) {
     EXPECT_EQ("-v", opts["<args>"].as_string_list()[0]);
 }
 
+//------------------------------------------------------------------------------
+// 14. Single Dash ("-") Unit Tests
+//------------------------------------------------------------------------------
 
+TEST(SingleDashTest, CommandFlagPresent) {
+    const std::string doc = "Usage: prog [-]\n";
+    char const* argv[] = { "-" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
 
+    EXPECT_TRUE(opts["-"].as<bool>());
+}
 
+TEST(SingleDashTest, CommandFlagAbsent) {
+    const std::string doc = "Usage: prog [-]\n";
+    Options opts = docoptcpp03::docopt_parse(doc, std::vector<std::string>());
+
+    EXPECT_FALSE(opts["-"].as<bool>());
+}
+
+TEST(SingleDashTest, BoundAsPositionalArgument) {
+    const std::string doc = "Usage: prog <file>\n";
+    char const* argv[] = { "-" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 1));
+
+    EXPECT_EQ("-", opts["<file>"].as<std::string>());
+}
+
+TEST(SingleDashTest, BoundInPositionalList) {
+    const std::string doc = "Usage: prog [<files>...]\n";
+    char const* argv[] = { "input.txt", "-", "output.txt" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 3));
+
+    std::vector<std::string> files = opts["<files>"].as_string_list();
+    ASSERT_EQ(3u, files.size());
+    EXPECT_EQ("input.txt", files[0]);
+    EXPECT_EQ("-", files[1]);
+    EXPECT_EQ("output.txt", files[2]);
+}
+
+TEST(SingleDashTest, CoexistenceWithOptions) {
+    const std::string doc =
+        "Usage: prog [-v] [-]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+    char const* argv[] = { "-v", "-" };
+    Options opts = docoptcpp03::docopt_parse(doc, make_args(argv, 2));
+
+    EXPECT_TRUE(opts["-v"].as<bool>());
+    EXPECT_TRUE(opts["-"].as<bool>());
+}
+
+TEST(SingleDashTest, UnexpectedDashThrowsDocoptExit) {
+    const std::string doc =
+        "Usage: prog [-v]\n"
+        "Options:\n"
+        "  -v  Verbose output.\n";
+    char const* argv[] = { "-" };
+
+    EXPECT_THROW(
+        docoptcpp03::docopt_parse(doc, make_args(argv, 1)),
+        DocoptExit
+    );
+}
+
+TEST(SingleDashTest, CStyleArgvOverload) {
+    const std::string doc = "Usage: prog [-]\n";
+    char const* argv[] = { "-" };
+    Options opts = docoptcpp03::docopt_parse(doc, 1, argv);
+
+    EXPECT_TRUE(opts["-"].as<bool>());
+}
