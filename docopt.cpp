@@ -167,9 +167,9 @@ bool Value::as<bool>() const {
         if (s == "false" || s == "0" || s == "no" || s == "off" || s.empty()) {
             return false;
         }
-        throw boost::bad_lexical_cast();
+        throw bad_value_cast();
     }
-    throw boost::bad_lexical_cast();
+    throw bad_value_cast();
 }
 
 template <>
@@ -178,29 +178,29 @@ long Value::as<long>() const {
         return long_val_;
     }
     if (kind_ == KIND_STRING) {
-        return boost::lexical_cast<long>(str_val_);
+        return detail::lexical_cast<long>(str_val_);
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1L : 0L;
     }
-    throw boost::bad_lexical_cast();
+    throw bad_value_cast();
 }
 
 template <>
 int Value::as<int>() const {
     if (kind_ == KIND_LONG) {
         if (long_val_ < INT_MIN || long_val_ > INT_MAX) {
-            throw boost::bad_lexical_cast();
+            throw bad_value_cast();
         }
         return static_cast<int>(long_val_);
     }
     if (kind_ == KIND_STRING) {
-        return boost::lexical_cast<int>(str_val_);
+        return detail::lexical_cast<int>(str_val_);
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1 : 0;
     }
-    throw boost::bad_lexical_cast();
+    throw bad_value_cast();
 }
 
 template <>
@@ -209,12 +209,12 @@ double Value::as<double>() const {
         return static_cast<double>(long_val_);
     }
     if (kind_ == KIND_STRING) {
-        return boost::lexical_cast<double>(str_val_);
+        return detail::lexical_cast<double>(str_val_);
     }
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? 1.0 : 0.0;
     }
-    throw boost::bad_lexical_cast();
+    throw bad_value_cast();
 }
 
 template <>
@@ -230,7 +230,7 @@ std::string Value::as<std::string>() const {
     if (kind_ == KIND_BOOL) {
         return bool_val_ ? "true" : "false";
     }
-    throw boost::bad_lexical_cast();
+    throw bad_value_cast();
 }
 
 bool Value::is_truthy() const {

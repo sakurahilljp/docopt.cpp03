@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Zero-Dependency Architecture**: Completely removed external dependencies on Boost (`<boost/lexical_cast.hpp>`). Implemented built-in, standard C++03 type conversion engine `docoptcpp03::detail::lexical_cast`.
+- **Standard Include Guards**: Added `#ifndef DOCOPT_H_` / `#define DOCOPT_H_` and `#ifndef DOCOPT_PRIVATE_H_` / `#define DOCOPT_PRIVATE_H_` header guards across public and internal header files for maximum portability across all C++03 conforming compilers.
+- **`docoptcpp03::bad_value_cast` Exception**: Introduced standard exception type `bad_value_cast` (derived from `std::bad_cast`) for conversion errors, along with backward-compatible typedef `docoptcpp03::bad_lexical_cast`.
+- **Strict Pedantic Compilation Flag**: Added `-pedantic-errors` to CMake compiler flags for non-MSVC builds to treat non-standard language extension intrusions as errors.
+
+### Changed
+- **Compiler Standards**: Enforced `-std=c++03` explicitly across all sample binaries (`calculator`, `naval_fate`) and library targets.
+- **Removed Macro**: Removed obsolete CMake macro `-DDOCOPT_USE_CUSTOM_LEXICAL_CAST` as the custom C++03 cast is now the permanent, standard implementation.
+
+### Fixed
+- **GNU Zero-Length Array Extension**: Replaced 6 occurrences of non-standard zero-length arrays (`char const* argv[] = {};`) in `unit_tests.cpp` with standard null pointer declarations (`char const* const* argv = 0;`), resolving ISO C++03 (§8.3.4/1, §8.5.1) compliance violations under `-pedantic-errors`.
+
 ## [1.4.1] - 2026-09-07
 
 ### Added

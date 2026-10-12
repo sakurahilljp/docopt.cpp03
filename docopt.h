@@ -1,3 +1,5 @@
+#ifndef DOCOPT_H_
+#define DOCOPT_H_
 #pragma once
 
 #include <string>
@@ -7,14 +9,20 @@
 #include <iostream>
 #include <sstream>
 #include <cctype>
-
-#if defined(DOCOPT_USE_CUSTOM_LEXICAL_CAST)
 #include <typeinfo>
-#else
-#include <boost/lexical_cast.hpp>
-#endif
 
 namespace docoptcpp03 {
+
+//------------------------------------------------------------------------------
+// Exceptions
+//------------------------------------------------------------------------------
+
+class bad_value_cast : public std::bad_cast {
+public:
+    virtual const char* what() const throw();
+};
+
+typedef bad_value_cast bad_lexical_cast;
 
 //==============================================================================
 // PART 1: PUBLIC INTERFACE & CLASS DECLARATIONS
@@ -245,25 +253,21 @@ Options docopt(
 // (Header-only template definitions)
 //==============================================================================
 
-#if defined(DOCOPT_USE_CUSTOM_LEXICAL_CAST)
+namespace docoptcpp03 {
 
-namespace boost {
-
-class bad_lexical_cast : public std::bad_cast {
-public:
-    virtual const char* what() const throw();
-};
-
-inline const char* bad_lexical_cast::what() const throw() {
-    return "bad lexical cast: source type value could not be interpreted as target";
+inline const char* bad_value_cast::what() const throw() {
+    return "docoptcpp03::bad_value_cast: source type value could not be interpreted as target";
 }
+
+//------------------------------------------------------------------------------
+namespace detail {
 
 template <typename Target, typename Source>
 inline Target lexical_cast(const Source& arg) {
     std::stringstream ss;
     Target result;
     if (!(ss << arg) || !(ss >> result) || !(ss >> std::ws).eof()) {
-        throw bad_lexical_cast();
+        throw bad_value_cast();
     }
     return result;
 }
@@ -273,19 +277,11 @@ inline Target lexical_cast(const std::string& arg) {
     std::stringstream ss(arg);
     Target result;
     if (!(ss >> result) || !(ss >> std::ws).eof()) {
-        throw bad_lexical_cast();
+        throw bad_value_cast();
     }
     return result;
 }
 
-} // namespace boost
-
-#endif
-
-namespace docoptcpp03 {
-
-//------------------------------------------------------------------------------
-namespace detail {
 template <bool> struct docopt_is_supported_type;
 template <> struct docopt_is_supported_type<true> {};
 
@@ -327,13 +323,13 @@ inline bool Value::isString() const { return is<std::string>(); }
 template <typename T>
 inline T Value::as() const {
     if (kind_ == KIND_STRING) {
-        return boost::lexical_cast<T>(str_val_);
+        return detail::lexical_cast<T>(str_val_);
     } else if (kind_ == KIND_LONG) {
-        return boost::lexical_cast<T>(long_val_);
+        return detail::lexical_cast<T>(long_val_);
     } else if (kind_ == KIND_BOOL) {
-        return boost::lexical_cast<T>(bool_val_ ? 1 : 0);
+        return detail::lexical_cast<T>(bool_val_ ? 1 : 0);
     }
-    throw boost::bad_lexical_cast();
+    throw bad_value_cast();
 }
 
 template <>
@@ -361,7 +357,7 @@ inline T Value::as_or(const T& default_val) const {
     try {
         if (is_empty()) return default_val;
         return as<T>();
-    } catch (const boost::bad_lexical_cast&) {
+    } catch (const bad_value_cast&) {
         return default_val;
     }
 }
@@ -399,3 +395,5 @@ inline T Options::get(const std::string& key, const T& default_val) const {
 }
 
 } // namespace docoptcpp03
+
+#endif // DOCOPT_H_

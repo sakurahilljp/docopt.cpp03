@@ -1,3 +1,5 @@
+#ifndef DOCOPT_PRIVATE_H_
+#define DOCOPT_PRIVATE_H_
 #pragma once
 
 namespace docoptcpp03 {
@@ -46,3 +48,5 @@ public:
 
 } // namespace detail
 } // namespace docoptcpp03
+
+#endif // DOCOPT_PRIVATE_H_
