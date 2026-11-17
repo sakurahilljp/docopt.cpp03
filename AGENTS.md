@@ -14,7 +14,7 @@ Whenever modifying code, creating branches, committing, or merging changes in th
    - Add reproduction test cases and run dynamic analysis (e.g., AddressSanitizer/ASan, UBSan) on the *unpatched* code to prove the issue exists.
    - Report the reproduction result to the user before applying fixes.
 3. **Propose Before Modifying**: Before editing any code files, present the proposed implementation plan and changes (diff or concept) to the user and obtain their explicit approval ("OK" or equivalent).
-4. **Document Investigation Reports**: When fixing security vulnerabilities or critical defects, create a detailed investigation and resolution report in the `docs/` directory covering root cause analysis, sequence/flow diagrams, PoC/reproduction logs, fix details, and verification results.
+4. **Document Investigation Reports**: When fixing security vulnerabilities or critical defects, create a detailed investigation and resolution report in the `bugfixes/` directory covering root cause analysis, sequence/flow diagrams, PoC/reproduction logs, fix details, and verification results.
 5. **Maintain CHANGELOG.md by Release Tags**:
    - When modifying functional code, bugfixes, or specifications, update `CHANGELOG.md` adhering strictly to [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
    - Ensure all past and current release tags (`vX.Y.Z`) and `[Unreleased]` sections are accurately partitioned and documented.
