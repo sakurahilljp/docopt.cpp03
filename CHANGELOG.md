@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CMake 3.11+ Build & Test Runner Script**: Added POSIX `sh`-compatible `build_and_test.sh` in the repository root supporting `--asan`, `--debug`, `--release`, `--clean`, and `--dir` options.
+
 ### Changed
 - **Minimum CMake Version (`3.11`)**: Lowered `cmake_minimum_required` from `3.14` to `3.11` in `CMakeLists.txt`, replacing `add_link_options` with `CMAKE_EXE_LINKER_FLAGS` / `CMAKE_SHARED_LINKER_FLAGS` and removing `FetchContent` dependency.
 - **Full C++03 Build & Offline GoogleTest (`v1.7.0`)**: Downgraded GoogleTest from `v1.12.1` to `v1.7.0` for broad C++03 and legacy compiler (e.g., GCC 3.4.5) compatibility, vendored the archive at `third_party/googletest-release-1.7.0.tar.gz` for offline extraction via CMake, and enabled `-std=c++03 -pedantic-errors` on the `unit_tests` target so that the entire codebase builds under strict C++03.

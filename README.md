@@ -159,7 +159,15 @@ try {
 
 ### Building with CMake
 
-From the repository root directory:
+From the repository root directory, you can use the helper script (CMake 3.11+ compatible):
+
+```bash
+./build_and_test.sh
+# Or with AddressSanitizer/UBSan:
+./build_and_test.sh --asan --clean
+```
+
+Or run CMake manually:
 
 ```bash
 mkdir -p build

@@ -35,6 +35,7 @@
 | [test_docopt.cpp](../test_docopt.cpp) | `docopt.python/testcases.docopt`（175 件）を実行する簡易 JSON パーサ付きテストランナー | `-std=c++03 -pedantic-errors` |
 | [unit_tests.cpp](../unit_tests.cpp) | GoogleTest v1.7.0 による単体テストスイート（89 件） | `-std=c++03 -pedantic-errors` |
 | [third_party/googletest-release-1.7.0.tar.gz](../third_party/googletest-release-1.7.0.tar.gz) | オフラインビルド用の GoogleTest v1.7.0 同梱アーカイブ | CMake configure 時に展開 |
+| [build_and_test.sh](../build_and_test.sh) | CMake 3.11+ 互換のビルド＆テスト実行スクリプト | POSIX `sh` 準拠 |
 | [CMakeLists.txt](../CMakeLists.txt) | ビルド設定、`ENABLE_ASAN` オプション、サンプル（`naval_fate`, `calculator`）およびテスト定義 | CMake 3.11+ |
 
 ### 2.2 ヘッダ二部構成と依存関係
@@ -327,6 +328,10 @@ flowchart TD
 変更時は、通常（Release）ビルドと AddressSanitizer + UBSan ビルドの双方で全テスト合格を確認します。
 
 ```bash
+# ヘルパースクリプトによる実行（CMake 3.11+ 互換）
+./build_and_test.sh --clean
+./build_and_test.sh --asan --clean
+
 # 厳格 C++03 単体コンパイルチェック
 clang++ -std=c++03 -pedantic-errors -Wall -Wextra -Wshadow -Wsign-compare -O2 -I. -c docopt.cpp -o /dev/null
 
