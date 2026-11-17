@@ -1,10 +1,6 @@
-set(CMAKE_POLICY_VERSION_MINIMUM 3.14)
-cmake_minimum_required(VERSION 3.14)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.11)
+cmake_minimum_required(VERSION 3.11)
 project(docopt_cpp03 CXX)
-
-if(POLICY CMP0135)
-    cmake_policy(SET CMP0135 NEW)
-endif()
 
 set(CMAKE_CXX_STANDARD 98)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +16,8 @@ endif()
 
 if(ENABLE_ASAN)
     add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -g)
-    add_link_options(-fsanitize=address,undefined)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,undefined")
 endif()
 
 # docopt library
@@ -30,9 +27,6 @@ target_include_directories(docopt PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
-if(NOT MSVC)
-    target_compile_options(docopt PRIVATE -std=c++03 -pedantic-errors)
-endif()
 
 # Installation & Export targets
 include(GNUInstallDirs)
@@ -66,24 +60,28 @@ install(FILES
 # Legacy docopt testcases runner executable
 add_executable(test_docopt test_docopt.cpp)
 target_link_libraries(test_docopt PRIVATE docopt)
-if(NOT MSVC)
-    target_compile_options(test_docopt PRIVATE -std=c++03 -pedantic-errors)
-endif()
 
-# Fetch GoogleTest
-include(FetchContent)
-set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+# Extract and build vendored GoogleTest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
-)
-FetchContent_MakeAvailable(googletest)
+set(GTEST_ARCHIVE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest-release-1.7.0.tar.gz")
+set(GTEST_SRC_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-release-1.7.0")
+if(NOT EXISTS "${GTEST_SRC_DIR}/CMakeLists.txt")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_deps")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E tar xzf "${GTEST_ARCHIVE}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_deps"
+        RESULT_VARIABLE GTEST_EXTRACT_RESULT
+    )
+    if(NOT GTEST_EXTRACT_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to extract ${GTEST_ARCHIVE}")
+    endif()
+endif()
+add_subdirectory("${GTEST_SRC_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-build" EXCLUDE_FROM_ALL)
 
 # Comprehensive GoogleTest executable
 add_executable(unit_tests unit_tests.cpp)
+target_include_directories(unit_tests SYSTEM PRIVATE "${GTEST_SRC_DIR}/include")
 target_link_libraries(unit_tests PRIVATE docopt gtest gtest_main)
 
 enable_testing()
@@ -93,13 +91,14 @@ add_test(NAME docopt_gtest_unit_tests COMMAND unit_tests)
 # Sample executables under cmds/
 add_executable(naval_fate cmds/naval_fate/main.cpp)
 target_link_libraries(naval_fate PRIVATE docopt)
-if(NOT MSVC)
-    target_compile_options(naval_fate PRIVATE -std=c++03 -pedantic-errors)
-endif()
 
 add_executable(calculator cmds/calculator/main.cpp)
 target_link_libraries(calculator PRIVATE docopt)
+
+# Enforce strict C++03 conformance across all project targets (excluding third-party GoogleTest)
 if(NOT MSVC)
-    target_compile_options(calculator PRIVATE -std=c++03 -pedantic-errors)
+    foreach(target IN ITEMS docopt test_docopt unit_tests naval_fate calculator)
+        target_compile_options(${target} PRIVATE -std=c++03 -pedantic-errors)
+    endforeach()
 endif()
 
