@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-17
+
 ### Fixed
 - **GCC 3.4.5 `-Wshadow` Warnings**: Renamed constructor parameters (`name` -> `pattern_name` in `LeafPattern`, `Argument`, `Command`; `children` -> `child_patterns` in `BranchPattern`, `Required`, `Optional`, `OptionsShortcut`, `OneOrMore`, `Either`) in `docopt.cpp` to avoid shadowing `Pattern::name()` and `Pattern::children()` member functions on older GCC versions such as GCC 3.4.5.
 - **GCC 3.4.5 `detail::lexical_cast` Overload Ambiguity**: Replaced the overloaded `detail::lexical_cast` function templates in `docopt.h` with a single function template dispatching to a class template (`detail::lexical_caster<Target, Source>`) and its partial specialization (`detail::lexical_caster<Target, std::string>`), resolving ambiguous overload errors during function template partial ordering on pre-DR 214 C++98/03 compilers such as GCC 3.4.5.
@@ -232,7 +234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial ported codebase based on Python `docopt` v0.6.2.
 
-[Unreleased]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.3.0...v1.4.0
