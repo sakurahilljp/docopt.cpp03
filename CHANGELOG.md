@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **GCC 3.4.5 `detail::lexical_cast` Overload Ambiguity**: Replaced the overloaded `detail::lexical_cast` function templates in `docopt.h` with a single function template dispatching to a class template (`detail::lexical_caster<Target, Source>`) and its partial specialization (`detail::lexical_caster<Target, std::string>`), resolving ambiguous overload errors during function template partial ordering on pre-DR 214 C++98/03 compilers such as GCC 3.4.5.
+
 ## [1.5.0] - 2026-10-12
 
 ### Added
