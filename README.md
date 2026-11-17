@@ -162,9 +162,12 @@ try {
 From the repository root directory:
 
 ```bash
-cmake -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
+mkdir -p build
+cd build
+cmake ..
+cmake --build .
+ctest --output-on-failure
+cd ..
 ```
 
 ### Integrating with CMake

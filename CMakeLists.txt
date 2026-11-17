@@ -62,12 +62,10 @@ add_executable(test_docopt test_docopt.cpp)
 target_link_libraries(test_docopt PRIVATE docopt)
 
 # Extract and build vendored GoogleTest
-set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-set(GTEST_ARCHIVE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest-release-1.8.1.tar.gz")
-set(GTEST_SRC_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-release-1.8.1")
+set(GTEST_ARCHIVE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest-release-1.7.0.tar.gz")
+set(GTEST_SRC_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-release-1.7.0")
 if(NOT EXISTS "${GTEST_SRC_DIR}/CMakeLists.txt")
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_deps")
     execute_process(
@@ -83,6 +81,7 @@ add_subdirectory("${GTEST_SRC_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/_deps/googletes
 
 # Comprehensive GoogleTest executable
 add_executable(unit_tests unit_tests.cpp)
+target_include_directories(unit_tests SYSTEM PRIVATE "${GTEST_SRC_DIR}/include")
 target_link_libraries(unit_tests PRIVATE docopt gtest gtest_main)
 
 enable_testing()
