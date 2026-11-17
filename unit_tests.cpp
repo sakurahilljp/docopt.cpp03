@@ -600,6 +600,49 @@ TEST(ValueTest, ValueAsIntOptimization) {
     EXPECT_THROW(v_list.as<int>(), bad_value_cast);
 }
 
+TEST(ValueTest, GenericValueAsAndLexicalCastDispatch) {
+    // 1. Primary template Value::as<T>() for non-specialized types
+    Value v_str_ul("42");
+    EXPECT_EQ(42UL, v_str_ul.as<unsigned long>());
+
+    Value v_str_float("1.5");
+    EXPECT_FLOAT_EQ(1.5f, v_str_float.as<float>());
+
+    Value v_long_ul(77L);
+    EXPECT_EQ(77UL, v_long_ul.as<unsigned long>());
+
+    Value v_bool_ul(true);
+    EXPECT_EQ(1UL, v_bool_ul.as<unsigned long>());
+
+    Value v_trailing("123abc");
+    EXPECT_THROW(v_trailing.as<long>(), bad_value_cast);
+    EXPECT_THROW(v_trailing.as<int>(), bad_value_cast);
+    EXPECT_THROW(v_trailing.as<double>(), bad_value_cast);
+    EXPECT_THROW(v_trailing.as<unsigned long>(), bad_value_cast);
+
+    Value v_empty_str("");
+    EXPECT_THROW(v_empty_str.as<long>(), bad_value_cast);
+    EXPECT_THROW(v_empty_str.as<int>(), bad_value_cast);
+    EXPECT_THROW(v_empty_str.as<double>(), bad_value_cast);
+
+    // 2. Direct detail::lexical_cast calls covering std::string specialization and generic template
+    std::string s_int = "  -256  ";
+    EXPECT_EQ(-256, detail::lexical_cast<int>(s_int));
+    EXPECT_EQ(-256L, detail::lexical_cast<long>(s_int));
+
+    std::string s_dbl = " 2.5 ";
+    EXPECT_DOUBLE_EQ(2.5, detail::lexical_cast<double>(s_dbl));
+
+    std::string s_bad = "42xyz";
+    EXPECT_THROW(detail::lexical_cast<long>(s_bad), bad_value_cast);
+    EXPECT_THROW(detail::lexical_cast<long>(std::string("   ")), bad_value_cast);
+
+    // Generic template path (non-std::string Source)
+    EXPECT_EQ("9876", detail::lexical_cast<std::string>(9876L));
+    EXPECT_EQ(456L, detail::lexical_cast<long>("456"));
+    EXPECT_THROW(detail::lexical_cast<long>("bad_input"), bad_value_cast);
+}
+
 
 
 TEST(ExceptionTest, DocoptExitException) {

@@ -263,23 +263,32 @@ inline const char* bad_value_cast::what() const throw() {
 namespace detail {
 
 template <typename Target, typename Source>
-inline Target lexical_cast(const Source& arg) {
-    std::stringstream ss;
-    Target result;
-    if (!(ss << arg) || !(ss >> result) || !(ss >> std::ws).eof()) {
-        throw bad_value_cast();
+struct lexical_caster {
+    static inline Target apply(const Source& arg) {
+        std::stringstream ss;
+        Target result;
+        if (!(ss << arg) || !(ss >> result) || !(ss >> std::ws).eof()) {
+            throw bad_value_cast();
+        }
+        return result;
     }
-    return result;
-}
+};
 
 template <typename Target>
-inline Target lexical_cast(const std::string& arg) {
-    std::stringstream ss(arg);
-    Target result;
-    if (!(ss >> result) || !(ss >> std::ws).eof()) {
-        throw bad_value_cast();
+struct lexical_caster<Target, std::string> {
+    static inline Target apply(const std::string& arg) {
+        std::stringstream ss(arg);
+        Target result;
+        if (!(ss >> result) || !(ss >> std::ws).eof()) {
+            throw bad_value_cast();
+        }
+        return result;
     }
-    return result;
+};
+
+template <typename Target, typename Source>
+inline Target lexical_cast(const Source& arg) {
+    return lexical_caster<Target, Source>::apply(arg);
 }
 
 template <bool> struct docopt_is_supported_type;
