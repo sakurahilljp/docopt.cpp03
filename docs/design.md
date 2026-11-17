@@ -33,8 +33,9 @@
 | [docopt_private.h](../docopt_private.h) | ライブラリ内部専用の侵入型スマートポインタ `detail::shared_ptr<T>` の定義 | C++03 厳格準拠 / GCC 3.4.5 互換 |
 | [docopt.cpp](../docopt.cpp) | `Value` / `Options` / 例外の非テンプレート実装、AST ノード群、字句・構文パーサ、マッチャ、エントリポイント | C++03 厳格準拠 / GCC 3.4.5 互換 |
 | [test_docopt.cpp](../test_docopt.cpp) | `docopt.python/testcases.docopt`（175 件）を実行する簡易 JSON パーサ付きテストランナー | `-std=c++03 -pedantic-errors` |
-| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest v1.12.1 による単体テストスイート（89 件） | GoogleTest 依存のため C++11 モードでビルド |
-| [CMakeLists.txt](../CMakeLists.txt) | ビルド設定、`ENABLE_ASAN` オプション、サンプル（`naval_fate`, `calculator`）およびテスト定義 | CMake 3.14+ |
+| [unit_tests.cpp](../unit_tests.cpp) | GoogleTest v1.8.1 による単体テストスイート（89 件） | `-std=c++03 -pedantic-errors` |
+| [third_party/googletest-release-1.8.1.tar.gz](../third_party/googletest-release-1.8.1.tar.gz) | オフラインビルド用の GoogleTest v1.8.1 同梱アーカイブ | CMake configure 時に展開 |
+| [CMakeLists.txt](../CMakeLists.txt) | ビルド設定、`ENABLE_ASAN` オプション、サンプル（`naval_fate`, `calculator`）およびテスト定義 | CMake 3.11+ |
 
 ### 2.2 ヘッダ二部構成と依存関係
 
