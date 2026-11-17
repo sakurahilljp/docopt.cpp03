@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-18
+
 ### Added
 - **CMake 3.11+ Build & Test Runner Script**: Added POSIX `sh`-compatible `build_and_test.sh` in the repository root supporting `--asan`, `--debug`, `--release`, `--clean`, and `--dir` options.
+- **Developer Design Documentation**: Added `docs/design.md` detailing architecture, AST/parser/matcher internals, C++03/GCC 3.4.5 portability constraints, and extension recipes.
 
 ### Changed
 - **Minimum CMake Version (`3.11`)**: Lowered `cmake_minimum_required` from `3.14` to `3.11` in `CMakeLists.txt`, replacing `add_link_options` with `CMAKE_EXE_LINKER_FLAGS` / `CMAKE_SHARED_LINKER_FLAGS` and removing `FetchContent` dependency.
@@ -241,7 +244,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial ported codebase based on Python `docopt` v0.6.2.
 
-[Unreleased]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/sakurahilljp/docopt.cpp03/compare/v1.4.0...v1.4.1
