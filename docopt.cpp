@@ -399,8 +399,8 @@ protected:
     Value value_;
 
 public:
-    LeafPattern(const std::string& name, const Value& val = Value())
-        : name_(name), value_(val) {}
+    LeafPattern(const std::string& pattern_name, const Value& val = Value())
+        : name_(pattern_name), value_(val) {}
 
     virtual bool is_leaf() const { return true; }
     virtual std::string name() const { return name_; }
@@ -495,8 +495,8 @@ private:
 
 class Argument : public LeafPattern {
 public:
-    Argument(const std::string& name, const Value& val = Value())
-        : LeafPattern(name, val) {}
+    Argument(const std::string& pattern_name, const Value& val = Value())
+        : LeafPattern(pattern_name, val) {}
 
     virtual PatternKind kind() const { return KIND_ARGUMENT; }
 
@@ -539,8 +539,8 @@ public:
 
 class Command : public Argument {
 public:
-    Command(const std::string& name, const Value& val = Value(false))
-        : Argument(name, val) {}
+    Command(const std::string& pattern_name, const Value& val = Value(false))
+        : Argument(pattern_name, val) {}
 
     virtual PatternKind kind() const { return KIND_COMMAND; }
 
@@ -644,8 +644,8 @@ protected:
 
 public:
     BranchPattern() {}
-    explicit BranchPattern(const std::vector<PatternPtr>& children)
-        : children_(children) {}
+    explicit BranchPattern(const std::vector<PatternPtr>& child_patterns)
+        : children_(child_patterns) {}
 
     virtual bool is_leaf() const { return false; }
     virtual std::vector<PatternPtr>& children() { return children_; }
@@ -666,8 +666,8 @@ public:
 class Required : public BranchPattern {
 public:
     Required() {}
-    explicit Required(const std::vector<PatternPtr>& children)
-        : BranchPattern(children) {}
+    explicit Required(const std::vector<PatternPtr>& child_patterns)
+        : BranchPattern(child_patterns) {}
 
     virtual PatternKind kind() const { return KIND_REQUIRED; }
 
@@ -702,8 +702,8 @@ public:
 class Optional : public BranchPattern {
 public:
     Optional() {}
-    explicit Optional(const std::vector<PatternPtr>& children)
-        : BranchPattern(children) {}
+    explicit Optional(const std::vector<PatternPtr>& child_patterns)
+        : BranchPattern(child_patterns) {}
 
     virtual PatternKind kind() const { return KIND_OPTIONAL; }
 
@@ -735,8 +735,8 @@ public:
 class OptionsShortcut : public Optional {
 public:
     OptionsShortcut() {}
-    explicit OptionsShortcut(const std::vector<PatternPtr>& children)
-        : Optional(children) {}
+    explicit OptionsShortcut(const std::vector<PatternPtr>& child_patterns)
+        : Optional(child_patterns) {}
 
     virtual PatternKind kind() const { return KIND_OPTIONS_SHORTCUT; }
 
@@ -748,8 +748,8 @@ public:
 class OneOrMore : public BranchPattern {
 public:
     OneOrMore() {}
-    explicit OneOrMore(const std::vector<PatternPtr>& children)
-        : BranchPattern(children) {}
+    explicit OneOrMore(const std::vector<PatternPtr>& child_patterns)
+        : BranchPattern(child_patterns) {}
 
     virtual PatternKind kind() const { return KIND_ONE_OR_MORE; }
 
@@ -797,8 +797,8 @@ public:
 class Either : public BranchPattern {
 public:
     Either() {}
-    explicit Either(const std::vector<PatternPtr>& children)
-        : BranchPattern(children) {}
+    explicit Either(const std::vector<PatternPtr>& child_patterns)
+        : BranchPattern(child_patterns) {}
 
     virtual PatternKind kind() const { return KIND_EITHER; }
 
