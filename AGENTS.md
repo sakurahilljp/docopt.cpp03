@@ -23,3 +23,14 @@ Whenever modifying code, creating branches, committing, or merging changes in th
 8. **Request Approval Before Merging**: Before merging the working branch into `main`, ask for the user's explicit permission.
 9. **Use Normal Merge**: When merging the approved working branch into `main`, always perform a normal merge (`git merge --no-ff`) to preserve commit history, unless instructed otherwise.
 10. **Delete Working Branch After Merge**: Once the working branch has been successfully merged into `main`, delete the local working branch (and remote branch, if applicable) to keep the repository clean, unless explicitly instructed to keep it.
+
+## C++03 & Legacy Compiler Portability Guidelines (GCC 3.4.5+)
+
+In addition to strict `-std=c++03 -pedantic-errors` conformance on modern Clang/GCC, code in `docopt.h`, `docopt_private.h`, and `docopt.cpp` must remain compatible with legacy C++03 compilers such as GCC 3.4.5:
+
+1. **Avoid Ambiguous Function Template Overloads (Pre-DR 214)**:
+   - Do not overload function templates that rely on partial ordering when an explicit template parameter (e.g., `Target`) appears only in the return type (such as `lexical_cast<Target>(const Source&)` vs. `lexical_cast<Target>(const std::string&)`).
+   - Instead, expose a single function template that delegates to a helper class template and use class template partial specialization.
+2. **Avoid `-Wshadow` Collisions with Member Functions**:
+   - Older GCC (`-Wshadow`) treats non-static member functions (including inherited ones like `Pattern::name()` and `Pattern::children()`) as shadowed by parameters or local variables inside constructors and non-static member functions.
+   - Name parameters and local variables in non-static member scopes so they do not collide with member variable or member function names (e.g., use `pattern_name`, `child_patterns`, `usage_str`). Local variables inside `static` member functions are exempt unless otherwise noted.
