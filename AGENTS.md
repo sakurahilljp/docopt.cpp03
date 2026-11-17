@@ -24,6 +24,13 @@ Whenever modifying code, creating branches, committing, or merging changes in th
 9. **Use Normal Merge**: When merging the approved working branch into `main`, always perform a normal merge (`git merge --no-ff`) to preserve commit history, unless instructed otherwise.
 10. **Delete Working Branch After Merge**: Once the working branch has been successfully merged into `main`, delete the local working branch (and remote branch, if applicable) to keep the repository clean, unless explicitly instructed to keep it.
 
+## Design Documentation
+
+The developer architecture and extension guide for this library is maintained in `docs/design.md`.
+
+- **Consult Before Modifying**: Review `docs/design.md` before designing or implementing code changes, refactoring, or new features to understand the architecture, invariants, and extension patterns.
+- **Keep Up to Date**: Whenever code changes, architectural updates, or feature extensions affect public APIs, internal AST/parser/matcher behavior, data models, or constraints, update `docs/design.md` as part of the same change.
+
 ## C++03 & Legacy Compiler Portability Guidelines (GCC 3.4.5+)
 
 In addition to strict `-std=c++03 -pedantic-errors` conformance on modern Clang/GCC, code in `docopt.h`, `docopt_private.h`, and `docopt.cpp` must remain compatible with legacy C++03 compilers such as GCC 3.4.5:
